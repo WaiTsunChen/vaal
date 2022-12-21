@@ -91,7 +91,7 @@ def main(args):
         device = torch.device('mps')
     else:
         device = torch.device('cpu')
-    args.cuda = False
+    # args.cuda = False
     solver = Solver(args, test_dataloader,device)
 
     splits = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
