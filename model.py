@@ -74,6 +74,8 @@ class VAE(nn.Module):
         epsilon = torch.randn(*mu.size())
         if mu.is_cuda:
             stds, epsilon = stds.cuda(), epsilon.cuda()
+        # elif torch.bakends.mps.is_available():
+        #     stds, epsilon = stds.to('mps'), epsilon.to('mps')
         latents = epsilon * stds + mu
         return latents
 

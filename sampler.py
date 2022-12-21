@@ -3,8 +3,9 @@ import torch
 import numpy as np
 
 class AdversarySampler:
-    def __init__(self, budget):
+    def __init__(self, budget, device):
         self.budget = budget
+        self.device = device
 
 
     def sample(self, vae, discriminator, data, cuda):
@@ -14,6 +15,7 @@ class AdversarySampler:
         for images, _, indices in data:
             if cuda:
                 images = images.cuda()
+                # images = images.to(self.device)
 
             with torch.no_grad():
                 _, _, mu, _ = vae(images)

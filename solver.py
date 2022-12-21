@@ -9,20 +9,20 @@ from sklearn.metrics import accuracy_score
 import sampler
 import copy
 
-
-
+import wandb
 
 
 class Solver:
-    def __init__(self, args, test_dataloader):
+    def __init__(self, args, test_dataloader, device):
         self.args = args
         self.test_dataloader = test_dataloader
+        self.device = device
 
         self.bce_loss = nn.BCELoss()
         self.mse_loss = nn.MSELoss()
         self.ce_loss = nn.CrossEntropyLoss()
 
-        self.sampler = sampler.AdversarySampler(self.args.budget)
+        self.sampler = sampler.AdversarySampler(self.args.budget,self.device)
 
 
     def read_data(self, dataloader, labels=True):
@@ -46,6 +46,7 @@ class Solver:
         optim_task_model = optim.SGD(task_model.parameters(), lr=0.01, weight_decay=5e-4, momentum=0.9)
         optim_discriminator = optim.Adam(discriminator.parameters(), lr=5e-4)
 
+        wandb.watch([vae,discriminator,task_model],log='all',log_freq=1)
 
         vae.train()
         discriminator.train()
@@ -55,6 +56,9 @@ class Solver:
             vae = vae.cuda()
             discriminator = discriminator.cuda()
             task_model = task_model.cuda()
+            # vae = vae.to(self.device)
+            # discriminator = discriminator.to(self.device)
+            # task_model = task_model.to(self.device)
         
         best_acc = 0
         for iter_count in range(self.args.train_iterations):
@@ -68,6 +72,9 @@ class Solver:
                 labeled_imgs = labeled_imgs.cuda()
                 unlabeled_imgs = unlabeled_imgs.cuda()
                 labels = labels.cuda()
+                # labeled_imgs = labeled_imgs.to(self.device)
+                # unlabeled_imgs = unlabeled_imgs.to(self.device)
+                # labels = labels.to(self.device)
 
             # task_model step
             preds = task_model(labeled_imgs)
@@ -93,9 +100,10 @@ class Solver:
                 if self.args.cuda:
                     lab_real_preds = lab_real_preds.cuda()
                     unlab_real_preds = unlab_real_preds.cuda()
-                
-                # print(f'labeled_preds: {labeled_preds}')
-                # print(f'lab_real_preds:{lab_real_preds.unsqueeze(1)}')
+                    # lab_real_preds = lab_real_preds.to(self.device)
+                    # unlab_real_preds = unlab_real_preds.to(self.device)
+
+                               
                 dsc_loss = self.bce_loss(labeled_preds, lab_real_preds.unsqueeze(1)) + \
                         self.bce_loss(unlabeled_preds, unlab_real_preds.unsqueeze(1))
                 total_vae_loss = unsup_loss + transductive_loss + self.args.adversary_param * dsc_loss
@@ -112,6 +120,9 @@ class Solver:
                         labeled_imgs = labeled_imgs.cuda()
                         unlabeled_imgs = unlabeled_imgs.cuda()
                         labels = labels.cuda()
+                        # labeled_imgs = labeled_imgs.to(self.device)
+                        # unlabeled_imgs = unlabeled_imgs.to(self.device)
+                        # labels = labels.to(self.device)
 
             # Discriminator step
             for count in range(self.args.num_adv_steps):
@@ -128,6 +139,8 @@ class Solver:
                 if self.args.cuda:
                     lab_real_preds = lab_real_preds.cuda()
                     unlab_fake_preds = unlab_fake_preds.cuda()
+                    # lab_real_preds = lab_real_preds.to(self.device)
+                    # unlab_fake_preds = unlab_fake_preds.to(self.device)
                 
                 dsc_loss = self.bce_loss(labeled_preds, lab_real_preds.unsqueeze(1)) + \
                         self.bce_loss(unlabeled_preds, unlab_fake_preds.unsqueeze(1))
@@ -145,8 +158,14 @@ class Solver:
                         labeled_imgs = labeled_imgs.cuda()
                         unlabeled_imgs = unlabeled_imgs.cuda()
                         labels = labels.cuda()
+                        # labeled_imgs = labeled_imgs.to(self.device)
+                        # unlabeled_imgs = unlabeled_imgs.to(self.device)
+                        # labels = labels.to(self.device)
 
-                
+            wandb.log({'iteration':iter_count})
+            wandb.log({'task_loss':task_loss.item()})
+            wandb.log({'vae_loss':total_vae_loss.item()})
+            wandb.log({'discriminator_loss':dsc_loss.item()})
 
             if iter_count % 100 == 0:
                 print('Current training iteration: {}'.format(iter_count))
@@ -166,6 +185,7 @@ class Solver:
 
         if self.args.cuda:
             best_model = best_model.cuda()
+            # best_model = best_model.to(self.device)
 
         final_accuracy = self.test(best_model)
         return final_accuracy, vae, discriminator
@@ -186,6 +206,7 @@ class Solver:
         for imgs, labels, _ in loader:
             if self.args.cuda:
                 imgs = imgs.cuda()
+                # imgs = imgs.to(self.device)
 
             with torch.no_grad():
                 preds = task_model(imgs)
@@ -201,6 +222,7 @@ class Solver:
         for imgs, labels in self.test_dataloader:
             if self.args.cuda:
                 imgs = imgs.cuda()
+                # imgs = imgs.to(self.device)
 
             with torch.no_grad():
                 preds = task_model(imgs)

@@ -15,6 +15,7 @@ from solver import Solver
 from utils import *
 import arguments
 
+import wandb
 
 def cifar_transformer():
     return transforms.Compose([
@@ -78,45 +79,52 @@ def main(args):
     val_dataloader = data.DataLoader(train_dataset, sampler=val_sampler,
             batch_size=args.batch_size, drop_last=False)
             
-    args.cuda = args.cuda and torch.cuda.is_available()
-    solver = Solver(args, test_dataloader)
+    args.cuda = args.cuda and (torch.cuda.is_available() or torch.backends.mps.is_available())
+    if torch.cuda.is_available():
+        device = torch.device('cuda')
+    elif torch.backends.mps.is_available():
+        device = torch.device('mps')
+    else:
+        device = torch.device('cpu')
+    args.cuda = False
+    solver = Solver(args, test_dataloader,device)
 
     splits = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
 
     current_indices = list(initial_indices)
 
     accuracies = []
+    with wandb.init(project="vaal-log"):
+        for split in splits:
+            # need to retrain all the models on the new images
+            # re initialize and retrain the models
+            task_model = vgg.vgg16_bn(num_classes=args.num_classes)
+            vae = model.VAE(args.latent_dim)
+            discriminator = model.Discriminator(args.latent_dim)
+
+            unlabeled_indices = np.setdiff1d(list(all_indices), current_indices)
+            unlabeled_sampler = data.sampler.SubsetRandomSampler(unlabeled_indices)
+            unlabeled_dataloader = data.DataLoader(train_dataset, 
+                    sampler=unlabeled_sampler, batch_size=args.batch_size, drop_last=False)
+
+            # train the models on the current data
+            acc, vae, discriminator = solver.train(querry_dataloader,
+                                                val_dataloader,
+                                                task_model, 
+                                                vae, 
+                                                discriminator,
+                                                unlabeled_dataloader)
+
+
+            print('Final accuracy with {}% of data is: {:.2f}'.format(int(split*100), acc))
+            accuracies.append(acc)
+
+            sampled_indices = solver.sample_for_labeling(vae, discriminator, unlabeled_dataloader)
+            current_indices = list(current_indices) + list(sampled_indices)
+            sampler = data.sampler.SubsetRandomSampler(current_indices)
+            querry_dataloader = data.DataLoader(train_dataset, sampler=sampler, 
+                    batch_size=args.batch_size, drop_last=True)
     
-    for split in splits:
-        # need to retrain all the models on the new images
-        # re initialize and retrain the models
-        task_model = vgg.vgg16_bn(num_classes=args.num_classes)
-        vae = model.VAE(args.latent_dim)
-        discriminator = model.Discriminator(args.latent_dim)
-
-        unlabeled_indices = np.setdiff1d(list(all_indices), current_indices)
-        unlabeled_sampler = data.sampler.SubsetRandomSampler(unlabeled_indices)
-        unlabeled_dataloader = data.DataLoader(train_dataset, 
-                sampler=unlabeled_sampler, batch_size=args.batch_size, drop_last=False)
-
-        # train the models on the current data
-        acc, vae, discriminator = solver.train(querry_dataloader,
-                                               val_dataloader,
-                                               task_model, 
-                                               vae, 
-                                               discriminator,
-                                               unlabeled_dataloader)
-
-
-        print('Final accuracy with {}% of data is: {:.2f}'.format(int(split*100), acc))
-        accuracies.append(acc)
-
-        sampled_indices = solver.sample_for_labeling(vae, discriminator, unlabeled_dataloader)
-        current_indices = list(current_indices) + list(sampled_indices)
-        sampler = data.sampler.SubsetRandomSampler(current_indices)
-        querry_dataloader = data.DataLoader(train_dataset, sampler=sampler, 
-                batch_size=args.batch_size, drop_last=True)
-
     torch.save(accuracies, os.path.join(args.out_path, args.log_name))
 
 if __name__ == '__main__':
