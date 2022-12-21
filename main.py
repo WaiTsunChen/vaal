@@ -16,6 +16,11 @@ from utils import *
 import arguments
 
 import wandb
+from dotenv import load_dotenv
+
+load_dotenv()
+
+wandb.login(key=os.environ['WANDB_KEY'])
 
 def cifar_transformer():
     return transforms.Compose([
