@@ -39,7 +39,7 @@ class Solver:
     def train(self, querry_dataloader, val_dataloader, task_model, vae, discriminator, unlabeled_dataloader):
         self.args.train_iterations = (self.args.num_images * self.args.train_epochs) // self.args.batch_size
         lr_change = self.args.train_iterations // 4
-        labeled_data = self.read_data(querry_dataloader)
+        labeled_data = self.read_data(querry_dataloader) 
         unlabeled_data = self.read_data(unlabeled_dataloader, labels=False)
 
         optim_vae = optim.Adam(vae.parameters(), lr=5e-4)
@@ -86,6 +86,10 @@ class Solver:
             # VAE step
             for count in range(self.args.num_vae_steps):
                 recon, z, mu, logvar = vae(labeled_imgs)
+                # print(f'recon: {recon.shape}')
+                # print(f'z: {z.shape}')
+                # print(f'mu: {mu.shape}')
+                # print(f'logvar: {logvar.shape}')
                 unsup_loss = self.vae_loss(labeled_imgs, recon, mu, logvar, self.args.beta)
                 unlab_recon, unlab_z, unlab_mu, unlab_logvar = vae(unlabeled_imgs)
                 transductive_loss = self.vae_loss(unlabeled_imgs, 
@@ -162,12 +166,12 @@ class Solver:
                         # unlabeled_imgs = unlabeled_imgs.to(self.device)
                         # labels = labels.to(self.device)
 
-            wandb.log({'iteration':iter_count})
-            wandb.log({'task_loss':task_loss.item()})
-            wandb.log({'vae_loss':total_vae_loss.item()})
-            wandb.log({'discriminator_loss':dsc_loss.item()})
 
             if iter_count % 100 == 0:
+                wandb.log({'iteration':iter_count})
+                wandb.log({'task_loss':task_loss.item()})
+                wandb.log({'vae_loss':total_vae_loss.item()})
+                wandb.log({'discriminator_loss':dsc_loss.item()})
                 print('Current training iteration: {}'.format(iter_count))
                 print('Current task model loss: {:.4f}'.format(task_loss.item()))
                 print('Current vae model loss: {:.4f}'.format(total_vae_loss.item()))
@@ -178,7 +182,7 @@ class Solver:
                 if acc > best_acc:
                     best_acc = acc
                     best_model = copy.deepcopy(task_model)
-                
+                wandb.log({'task_acc':acc})
                 print('current step: {} acc: {}'.format(iter_count, acc))
                 print('best acc: ', best_acc)
 

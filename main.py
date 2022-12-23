@@ -67,6 +67,26 @@ def main(args):
         args.budget = 64060
         args.initial_budget = 128120
         args.num_classes = 1000
+    
+    elif args.dataset == 'snapshot_serengeti':
+        animal_test_dataset = BoundingBoxImageLoader(
+            pickle_file=args.data_path+'/'+'df_metadata_test.df', # load test dataframe
+            root_dir=os.environ['DATA_DIR_PATH'],
+            transform=augmentations_medium())
+
+        test_dataloader = data.DataLoader(animal_test_dataset, batch_size=args.batch_size, shuffle=True)
+
+        train_dataset = BoundingBoxImageLoader(
+            pickle_file=args.data_path+'/'+'df_metadata_train.df', # load train dataframe
+            root_dir=os.environ['DATA_DIR_PATH'],
+            transform=augmentations_medium()
+        )
+
+        args.num_val = 50
+        args.num_images = 500
+        args.budget = 25
+        args.initial_budget = 50
+        args.num_classes = 47
     else:
         raise NotImplementedError
 
@@ -84,13 +104,12 @@ def main(args):
     val_dataloader = data.DataLoader(train_dataset, sampler=val_sampler,
             batch_size=args.batch_size, drop_last=False)
             
-    args.cuda = args.cuda and (torch.cuda.is_available() or torch.backends.mps.is_available())
-    if torch.cuda.is_available():
-        device = torch.device('cuda')
-    elif torch.backends.mps.is_available():
-        device = torch.device('mps')
-    else:
-        device = torch.device('cpu')
+    args.cuda = args.cuda and torch.cuda.is_available()
+    device = torch.device('cuda')
+    # elif torch.backends.mps.is_available():
+    #     device = torch.device('mps')
+    # else:
+    #     device = torch.device('cpu')
     # args.cuda = False
     solver = Solver(args, test_dataloader,device)
 
