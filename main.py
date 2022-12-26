@@ -70,14 +70,16 @@ def main(args):
     
     elif args.dataset == 'snapshot_serengeti':
         animal_test_dataset = BoundingBoxImageLoader(
-            pickle_file=args.data_path+'/'+'df_metadata_test.df', # load test dataframe
+            # pickle_file=args.data_path+'/'+'df_metadata_test.df', # load test dataframe
+            pickle_file=os.environ['DATA_DIR_PATH']+'/'+'df_metadata_test.df',
             root_dir=os.environ['DATA_DIR_PATH'],
             transform=augmentations_medium())
 
         test_dataloader = data.DataLoader(animal_test_dataset, batch_size=args.batch_size, shuffle=True)
 
         train_dataset = BoundingBoxImageLoader(
-            pickle_file=args.data_path+'/'+'df_metadata_train.df', # load train dataframe
+            # pickle_file=args.data_path+'/'+'df_metadata_train.df', # load train dataframe
+            pickle_file=os.environ['DATA_DIR_PATH']+'/'+'df_metadata_test.df',
             root_dir=os.environ['DATA_DIR_PATH'],
             transform=augmentations_medium()
         )
