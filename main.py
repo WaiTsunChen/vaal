@@ -75,7 +75,7 @@ def main(args):
             root_dir=os.environ['DATA_DIR_PATH'],
             transform=augmentations_medium())
 
-        test_dataloader = data.DataLoader(animal_test_dataset, batch_size=args.batch_size, shuffle=True)
+        test_dataloader = data.DataLoader(animal_test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=8)
 
         train_dataset = BoundingBoxImageLoader(
             # pickle_file=args.data_path+'/'+'df_metadata_train.df', # load train dataframe
@@ -102,9 +102,9 @@ def main(args):
 
     # dataset with labels available
     querry_dataloader = data.DataLoader(train_dataset, sampler=sampler, 
-            batch_size=args.batch_size, drop_last=True)
+            batch_size=args.batch_size, drop_last=True, num_workers=8)
     val_dataloader = data.DataLoader(train_dataset, sampler=val_sampler,
-            batch_size=args.batch_size, drop_last=False)
+            batch_size=args.batch_size, drop_last=False, num_workers=8)
             
     args.cuda = args.cuda and torch.cuda.is_available()
     device = torch.device('cuda')
