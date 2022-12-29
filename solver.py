@@ -10,6 +10,7 @@ import sampler
 import copy
 
 import wandb
+import time
 
 
 class Solver:
@@ -39,8 +40,20 @@ class Solver:
     def train(self, querry_dataloader, val_dataloader, task_model, vae, discriminator, unlabeled_dataloader):
         self.args.train_iterations = (self.args.num_images * self.args.train_epochs) // self.args.batch_size
         lr_change = self.args.train_iterations // 4
+        start = time.time()
         labeled_data = self.read_data(querry_dataloader) 
+        check_one = time.time()
         unlabeled_data = self.read_data(unlabeled_dataloader, labels=False)
+        check_two = time.time()
+        labeled_imgs, labels = next(labeled_data)
+        check_three = time.time()
+        unlabeled_imgs = next(unlabeled_data)
+        end = time.time()
+        print(f'total time: {end - start}')
+        print(f'loading querry data:{check_one-start}' )
+        print(f'loading unlabeled data:{check_two-check_one}' )
+        print(f'get next batch labeled data:{check_three-check_two}' )
+        print(f'get next batch unlabeled data: {end-check_three}')
 
         optim_vae = optim.Adam(vae.parameters(), lr=5e-4)
         optim_task_model = optim.SGD(task_model.parameters(), lr=0.01, weight_decay=5e-4, momentum=0.9)
