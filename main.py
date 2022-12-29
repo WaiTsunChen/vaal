@@ -33,7 +33,7 @@ def main(args):
     if args.dataset == 'cifar10':
         test_dataloader = data.DataLoader(
                 datasets.CIFAR10(args.data_path, download=True, transform=cifar_transformer(), train=False),
-            batch_size=args.batch_size, drop_last=False)
+            batch_size=args.batch_size, drop_last=False,num_workers=args.num_workers)
 
         train_dataset = CIFAR10(args.data_path)
 
@@ -75,7 +75,7 @@ def main(args):
             root_dir=os.environ['DATA_DIR_PATH'],
             transform=augmentations_medium())
 
-        test_dataloader = data.DataLoader(animal_test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=8)
+        test_dataloader = data.DataLoader(animal_test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 
         train_dataset = BoundingBoxImageLoader(
             # pickle_file=args.data_path+'/'+'df_metadata_train.df', # load train dataframe
@@ -102,9 +102,9 @@ def main(args):
 
     # dataset with labels available
     querry_dataloader = data.DataLoader(train_dataset, sampler=sampler, 
-            batch_size=args.batch_size, drop_last=True, num_workers=8)
+            batch_size=args.batch_size, drop_last=True, num_workers=args.num_workers)
     val_dataloader = data.DataLoader(train_dataset, sampler=val_sampler,
-            batch_size=args.batch_size, drop_last=False, num_workers=8)
+            batch_size=args.batch_size, drop_last=False, num_workers=args.num_workers)
             
     args.cuda = args.cuda and torch.cuda.is_available()
     device = torch.device('cuda')
@@ -131,7 +131,8 @@ def main(args):
             unlabeled_indices = np.setdiff1d(list(all_indices), current_indices)
             unlabeled_sampler = data.sampler.SubsetRandomSampler(unlabeled_indices)
             unlabeled_dataloader = data.DataLoader(train_dataset, 
-                    sampler=unlabeled_sampler, batch_size=args.batch_size, drop_last=False)
+                    sampler=unlabeled_sampler, batch_size=args.batch_size, drop_last=False,
+                    num_workers=args.num_workers)
 
             # train the models on the current data
             acc, vae, discriminator = solver.train(querry_dataloader,
@@ -149,7 +150,7 @@ def main(args):
             current_indices = list(current_indices) + list(sampled_indices)
             sampler = data.sampler.SubsetRandomSampler(current_indices)
             querry_dataloader = data.DataLoader(train_dataset, sampler=sampler, 
-                    batch_size=args.batch_size, drop_last=True)
+                    batch_size=args.batch_size, drop_last=True, num_workers=args.num_workers)
     
     torch.save(accuracies, os.path.join(args.out_path, args.log_name))
 
