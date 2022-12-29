@@ -135,18 +135,18 @@ def main(args):
                     sampler=unlabeled_sampler, batch_size=args.batch_size, drop_last=False,
                     num_workers=args.num_workers)
 
-            with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
-            profile_memory=True) as prof:
-                # train the models on the current data
-                acc, vae, discriminator = solver.train(querry_dataloader,
-                                                    val_dataloader,
-                                                    task_model, 
-                                                    vae, 
-                                                    discriminator,
-                                                    unlabeled_dataloader)
+            # with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+            # profile_memory=True) as prof:
+            # train the models on the current data
+            acc, vae, discriminator = solver.train(querry_dataloader,
+                                                val_dataloader,
+                                                task_model, 
+                                                vae, 
+                                                discriminator,
+                                                unlabeled_dataloader)
 
-            print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=100))
-            prof.export_chrome_trace("trace.json")
+            # print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=100))
+            # prof.export_chrome_trace("trace.json")
             print('Final accuracy with {}% of data is: {:.2f}'.format(int(split*100), acc))
             accuracies.append(acc)
 

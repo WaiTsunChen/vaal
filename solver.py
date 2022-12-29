@@ -42,8 +42,6 @@ class Solver:
         lr_change = self.args.train_iterations // 4
         labeled_data = self.read_data(querry_dataloader) 
         unlabeled_data = self.read_data(unlabeled_dataloader, labels=False)
-        labeled_imgs, labels = next(labeled_data)
-        unlabeled_imgs = next(unlabeled_data)
 
         optim_vae = optim.Adam(vae.parameters(), lr=5e-4)
         optim_task_model = optim.SGD(task_model.parameters(), lr=0.01, weight_decay=5e-4, momentum=0.9)
@@ -68,25 +66,32 @@ class Solver:
             if iter_count is not 0 and iter_count % lr_change == 0:
                 for param in optim_task_model.param_groups:
                     param['lr'] = param['lr'] / 10
+            load_img_start = time.time()
             labeled_imgs, labels = next(labeled_data)
             unlabeled_imgs = next(unlabeled_data)
+            load_img_end = time.time()
 
             if self.args.cuda:
+                img_to_gpu_start = time.time()
                 labeled_imgs = labeled_imgs.cuda()
                 unlabeled_imgs = unlabeled_imgs.cuda()
                 labels = labels.cuda()
+                img_to_gpu_end = time.time()
                 # labeled_imgs = labeled_imgs.to(self.device)
                 # unlabeled_imgs = unlabeled_imgs.to(self.device)
                 # labels = labels.to(self.device)
 
             # task_model step
+            task_start =time.time()
             preds = task_model(labeled_imgs)
             task_loss = self.ce_loss(preds, labels)
             optim_task_model.zero_grad()
             task_loss.backward()
             optim_task_model.step()
+            task_end = time.time()
 
             # VAE step
+            vae_start = time.time()
             for count in range(self.args.num_vae_steps):
                 recon, z, mu, logvar = vae(labeled_imgs)
                 # print(f'recon: {recon.shape}')
@@ -130,7 +135,8 @@ class Solver:
                         # labeled_imgs = labeled_imgs.to(self.device)
                         # unlabeled_imgs = unlabeled_imgs.to(self.device)
                         # labels = labels.to(self.device)
-
+            vae_end = time.time()
+            disc_start =time.time()
             # Discriminator step
             for count in range(self.args.num_adv_steps):
                 with torch.no_grad():
@@ -169,7 +175,12 @@ class Solver:
                         # unlabeled_imgs = unlabeled_imgs.to(self.device)
                         # labels = labels.to(self.device)
 
-
+            disc_end = time.time()
+            wandb.log({'get next images':load_img_end-load_img_start})
+            wandb.log({'images to GPU':img_to_gpu_end-img_to_gpu_start})
+            wandb.log({'task model':task_end-task_start})
+            wandb.log({'vae part':vae_end-vae_start})
+            wandb.log({'disc part':disc_end-disc_end})
             if iter_count % 100 == 0:
                 wandb.log({'iteration':iter_count})
                 wandb.log({'task_loss':task_loss.item()})
