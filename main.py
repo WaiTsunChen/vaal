@@ -79,15 +79,15 @@ def main(args):
 
         train_dataset = BoundingBoxImageLoader(
             # pickle_file=args.data_path+'/'+'df_metadata_train.df', # load train dataframe
-            pickle_file=os.environ['DATA_DIR_PATH']+'/'+'df_metadata_test.df',
+            pickle_file=os.environ['DATA_DIR_PATH']+'/'+'df_metadata_train.df',
             root_dir=os.environ['DATA_DIR_PATH'],
             transform=augmentations_medium()
         )
 
-        args.num_val = 50
-        args.num_images = 500
-        args.budget = 25
-        args.initial_budget = 50
+        args.num_val = 500
+        args.num_images = 5000
+        args.budget = 250
+        args.initial_budget = 500
         args.num_classes = 47
     else:
         raise NotImplementedError
