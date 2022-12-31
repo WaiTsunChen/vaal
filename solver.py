@@ -176,11 +176,11 @@ class Solver:
                         # labels = labels.to(self.device)
 
             disc_end = time.time()
-            wandb.log({'get next images':load_img_end-load_img_start})
-            wandb.log({'images to GPU':img_to_gpu_end-img_to_gpu_start})
-            wandb.log({'task model':task_end-task_start})
-            wandb.log({'vae part':vae_end-vae_start})
-            wandb.log({'disc part':disc_end-disc_end})
+            # wandb.log({'get next images':load_img_end-load_img_start})
+            # wandb.log({'images to GPU':img_to_gpu_end-img_to_gpu_start})
+            # wandb.log({'task model':task_end-task_start})
+            # wandb.log({'vae part':vae_end-vae_start})
+            # wandb.log({'disc part':disc_end-disc_start})
             if iter_count % 100 == 0:
                 wandb.log({'iteration':iter_count})
                 wandb.log({'task_loss':task_loss.item()})

@@ -1,7 +1,7 @@
 import torch
 
 import numpy as np
-
+import wandb
 class AdversarySampler:
     def __init__(self, budget, device):
         self.budget = budget
@@ -33,6 +33,11 @@ class AdversarySampler:
         # select the points which the discriminator things are the most likely to be unlabeled
         _, querry_indices = torch.topk(all_preds, int(self.budget))
         querry_pool_indices = np.asarray(all_indices)[querry_indices]
+        wandb.log({'sampled_indices':querry_pool_indices})
+
+        _, not_querry_indices = torch.topk(all_preds, int(self.budget),largest=False)
+        not_querry_indices = np.asarray(all_indices)[not_querry_indices]
+        wandb.log({'not_sampled_indices':not_querry_indices})
 
         return querry_pool_indices
         

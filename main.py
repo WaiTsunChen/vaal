@@ -85,10 +85,10 @@ def main(args):
             transform=augmentations_medium()
         )
 
-        args.num_val = 500
-        args.num_images = 5000
-        args.budget = 250
-        args.initial_budget = 500
+        args.num_val = 5000
+        args.num_images = 50000
+        args.budget = 2500
+        args.initial_budget = 5000
         args.num_classes = 47
     else:
         raise NotImplementedError
@@ -122,6 +122,7 @@ def main(args):
 
     accuracies = []
     with wandb.init(project="vaal-log"):
+        wandb.log({'intitial_samples':current_indices})
         for split in splits:
             # need to retrain all the models on the new images
             # re initialize and retrain the models
