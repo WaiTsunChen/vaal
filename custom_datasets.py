@@ -122,7 +122,10 @@ class BoundingBoxImageLoader(Dataset):
 
         img_name = os.path.join(self.root_dir,
                                 self.dataframe.iloc[idx, 0]+'.JPG')
-        image = read_image(img_name)
+        try:
+            image = read_image(img_name)
+        except:
+            print(img_name)
         bbox_im = self.dataframe.iloc[idx, 1]
         image_croped = transforms.functional.crop(
             image, int(bbox_im[1]), int(bbox_im[0]), int(bbox_im[3]), int(bbox_im[2])) # top, left, height, width
