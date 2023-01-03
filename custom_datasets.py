@@ -8,8 +8,8 @@ import os
 import pandas as pd
 
 from utils import *
-from PIL import Image
-
+from PIL import Image, ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 def imagenet_transformer():
     transform=transforms.Compose([
         transforms.RandomResizedCrop(224),
