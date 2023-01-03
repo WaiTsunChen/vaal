@@ -47,7 +47,7 @@ class Solver:
         optim_task_model = optim.SGD(task_model.parameters(), lr=0.01, weight_decay=5e-4, momentum=0.9)
         optim_discriminator = optim.Adam(discriminator.parameters(), lr=5e-4)
 
-        wandb.watch([vae,discriminator,task_model],log='all',log_freq=1000)
+        wandb.watch([vae,discriminator,task_model],log='all',log_freq=9000)
 
         vae.train()
         discriminator.train()
@@ -181,7 +181,7 @@ class Solver:
             # wandb.log({'task model':task_end-task_start})
             # wandb.log({'vae part':vae_end-vae_start})
             # wandb.log({'disc part':disc_end-disc_start})
-            if iter_count % 100 == 0:
+            if iter_count % 1000 == 0:
                 wandb.log({'iteration':iter_count})
                 wandb.log({'task_loss':task_loss.item()})
                 wandb.log({'vae_loss':total_vae_loss.item()})
@@ -191,7 +191,7 @@ class Solver:
                 print('Current vae model loss: {:.4f}'.format(total_vae_loss.item()))
                 print('Current discriminator model loss: {:.4f}'.format(dsc_loss.item()))
 
-            if iter_count % 1000 == 0:
+            if iter_count % 9000 == 0:
                 acc = self.validate(task_model, val_dataloader)
                 if acc > best_acc:
                     best_acc = acc
