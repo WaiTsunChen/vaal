@@ -144,7 +144,7 @@ def main(args):
 
     accuracies = []
     with wandb.init(project="vaal-log"):
-        wandb.log({'intitial_samples':current_indices})
+        # wandb.log({'intitial_samples':current_indices})
         for split in splits:
             # need to retrain all the models on the new images
             # re initialize and retrain the models

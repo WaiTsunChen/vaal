@@ -1,5 +1,5 @@
 from torchvision import datasets, transforms
-from torch.utils.data import DataLoader, Dataset, data
+from torch.utils.data import DataLoader, Dataset
 import torchvision
 from torchvision.io import read_image
 import torch
@@ -12,7 +12,9 @@ import os
 import random
 import time
 from custom_datasets import *
+from dotenv import load_dotenv
 
+load_dotenv()
 
 def read_data(dataloader, labels=True):
         if labels:
@@ -50,26 +52,26 @@ num_classes = 47
 batch_size = 128
 
 animal_train_dataset = BoundingBoxImageLoader(
-    pickle_file='df_metadata_train.df', 
+    pickle_file=os.environ['DATA_DIR_PATH']+'/'+'df_metadata_train.df', 
     root_dir=os.environ['DATA_DIR_PATH'],
     transform=augmentations_medium())
 
 animal_test_dataset = BoundingBoxImageLoader(
-    pickle_file='df_metadata_test.df', # load test dataframe
+    pickle_file=os.environ['DATA_DIR_PATH']+'/'+'df_metadata_test.df',  # load test dataframe
     root_dir=os.environ['DATA_DIR_PATH'],
     transform=augmentations_medium())
 
-test_dataloader = data.DataLoader(animal_test_dataset, batch_size=batch_size, shuffle=True,num_workers=8)
-train_dataloader = data.DataLoader(animal_test_dataset,batch_size=batch_size, shuffle=True,num_workers=8)
+test_dataloader = DataLoader(animal_test_dataset, batch_size=batch_size, shuffle=True,num_workers=32)
+train_dataloader = DataLoader(animal_test_dataset,batch_size=batch_size, shuffle=True,num_workers=32)
 
 count_train = 0
-for (sample, target,idx) in test_dataloader:
-    if sample == 0:
-        count_train+=1
+for (sample, target,idx) in train_dataloader:
+    count_train += 1
 count_validation = 0
 for (sample, target,idx) in test_dataloader:
-    if sample == 0:
-        count_validation+=1
+    count_validation +=1
+print(f'count_train: {count_train}')
+print(f'count_validation: {count_validation}')
 
 # all_indices = set(np.arange(num_images))
 # val_indices = random.sample(all_indices, num_val)

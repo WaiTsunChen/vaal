@@ -33,11 +33,11 @@ class AdversarySampler:
         # select the points which the discriminator things are the most likely to be unlabeled
         _, querry_indices = torch.topk(all_preds, int(self.budget))
         querry_pool_indices = np.asarray(all_indices)[querry_indices]
-        print(querry_indices[:100])
+        print(list(querry_pool_indices[:200]))
 
         _, not_querry_indices = torch.topk(all_preds, int(self.budget),largest=False)
-        not_querry_indices = np.asarray(all_indices)[not_querry_indices]
-        print(not_querry_indices[:100])
+        not_querry_pool_indices = np.asarray(all_indices)[not_querry_indices]
+        print(list(not_querry_pool_indices[:200]))
 
         return querry_pool_indices
         
