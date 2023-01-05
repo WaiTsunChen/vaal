@@ -23,6 +23,12 @@ load_dotenv()
 
 wandb.login(key=os.environ['WANDB_KEY'])
 
+sharing_strategy = "file_system"
+torch.multiprocessing.set_sharing_strategy(sharing_strategy)
+
+def set_worker_sharing_strategy(worker_id: int) -> None:
+    torch.multiprocessing.set_sharing_strategy(sharing_strategy)
+
 def cifar_transformer():
     return transforms.Compose([
             transforms.ToTensor(),
@@ -76,7 +82,8 @@ def main(args):
             root_dir=os.environ['DATA_DIR_PATH'],
             transform=augmentations_medium())
 
-        test_dataloader = data.DataLoader(animal_test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
+        test_dataloader = data.DataLoader(animal_test_dataset, batch_size=args.batch_size, shuffle=True, 
+        num_workers=args.num_workers, worker_init_fn=set_worker_sharing_strategy)
 
         train_dataset = BoundingBoxImageLoader(
             # pickle_file=args.data_path+'/'+'df_metadata_train.df', # load train dataframe
@@ -98,7 +105,8 @@ def main(args):
             root_dir=os.environ['DATA_DIR_PATH'],
             transform=augmentations_medium())
 
-        test_dataloader = data.DataLoader(animal_test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
+        test_dataloader = data.DataLoader(animal_test_dataset, batch_size=args.batch_size, shuffle=True,
+        num_workers=args.num_workers, worker_init_fn=set_worker_sharing_strategy)
 
         train_dataset = BoundingBoxImageLoader(
             # pickle_file=args.data_path+'/'+'df_metadata_train.df', # load train dataframe
@@ -125,9 +133,11 @@ def main(args):
 
     # dataset with labels available
     querry_dataloader = data.DataLoader(train_dataset, sampler=sampler, 
-            batch_size=args.batch_size, drop_last=True, num_workers=args.num_workers)
+            batch_size=args.batch_size, drop_last=True, num_workers=args.num_workers,
+            worker_init_fn=set_worker_sharing_strategy)
     val_dataloader = data.DataLoader(train_dataset, sampler=val_sampler,
-            batch_size=args.batch_size, drop_last=False, num_workers=args.num_workers)
+            batch_size=args.batch_size, drop_last=False, num_workers=args.num_workers,
+            worker_init_fn=set_worker_sharing_strategy)
             
     args.cuda = args.cuda and torch.cuda.is_available()
     device = torch.device('cuda')
@@ -177,7 +187,8 @@ def main(args):
             current_indices = list(current_indices) + list(sampled_indices)
             sampler = data.sampler.SubsetRandomSampler(current_indices)
             querry_dataloader = data.DataLoader(train_dataset, sampler=sampler, 
-                    batch_size=args.batch_size, drop_last=True, num_workers=args.num_workers)
+                    batch_size=args.batch_size, drop_last=True, num_workers=args.num_workers,
+                    worker_init_fn=set_worker_sharing_strategy)
     
     torch.save(accuracies, os.path.join(args.out_path, args.log_name))
 

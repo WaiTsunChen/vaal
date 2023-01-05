@@ -38,7 +38,8 @@ def augmentations_light():
 def augmentations_medium():
     return transforms.Compose([
     #transforms.ToPILImage(),
-    transforms.RandomResizedCrop((96, 96)),
+    # transforms.RandomResizedCrop((96, 96)),
+    transforms.Resize((96,96)),
     transforms.RandomHorizontalFlip(p=0.5),
     # transforms.Grayscale(),
     transforms.ToTensor(),
