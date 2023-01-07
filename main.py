@@ -77,7 +77,7 @@ def main(args):
         args.initial_budget = 128120
         args.num_classes = 1000
     
-    elif args.dataset == 'snapshot_serengeti':
+    elif 'snapshot_serengeti' in args.dataset:
         animal_test_dataset = BoundingBoxImageLoader(
             # pickle_file=args.data_path+'/'+'df_metadata_test.df', # load test dataframe
             pickle_file=os.environ['DATA_DIR_PATH']+'/'+'df_metadata_test.df',
@@ -94,56 +94,25 @@ def main(args):
             transform=augmentations_medium()
         )
 
-        args.num_val = 5000
-        args.num_images = 50000
-        args.budget = 2500
-        args.initial_budget = 5000
-        args.num_classes = 47
+        if args.dataset == 'snapshot_serengeti_complete':
+            args.num_val = 127725
+            args.num_images = 1277251
+            args.budget = 63862
+            args.initial_budget = 127725
+            args.num_classes = 47
+        elif args.dataset == 'snapshot_serengeti_random':
+            args.num_val = 1000
+            args.num_images = 1277251
+            args.budget = 5000
+            args.initial_budget = 10000
+            args.num_classes = 47
+        else:
+            args.num_val = 5000
+            args.num_images = 50000
+            args.budget = 2500
+            args.initial_budget = 5000
+            args.num_classes = 47
     
-    elif args.dataset == 'snapshot_serengeti_complete':
-        animal_test_dataset = BoundingBoxImageLoader(
-            # pickle_file=args.data_path+'/'+'df_metadata_test.df', # load test dataframe
-            pickle_file=os.environ['DATA_DIR_PATH']+'/'+'df_metadata_test.df',
-            root_dir=os.environ['DATA_DIR_PATH'],
-            transform=augmentations_medium())
-
-        test_dataloader = data.DataLoader(animal_test_dataset, batch_size=args.batch_size, shuffle=True,
-        num_workers=args.num_workers, worker_init_fn=set_worker_sharing_strategy)
-
-        train_dataset = BoundingBoxImageLoader(
-            # pickle_file=args.data_path+'/'+'df_metadata_train.df', # load train dataframe
-            pickle_file=os.environ['DATA_DIR_PATH']+'/'+'df_metadata_train.df',
-            root_dir=os.environ['DATA_DIR_PATH'],
-            transform=augmentations_medium()
-        )
-
-        args.num_val = 127725
-        args.num_images = 1277251
-        args.budget = 63862
-        args.initial_budget = 127725
-        args.num_classes = 47
-
-    elif args.dataset == 'snapshot_serengeti_random':
-        animal_test_dataset = BoundingBoxImageLoader(
-            # pickle_file=args.data_path+'/'+'df_metadata_test.df', # load test dataframe
-            pickle_file=os.environ['DATA_DIR_PATH']+'/'+'df_metadata_test.df',
-            root_dir=os.environ['DATA_DIR_PATH'],
-            transform=augmentations_medium())
-
-        test_dataloader = data.DataLoader(animal_test_dataset, batch_size=args.batch_size, shuffle=True,
-        num_workers=args.num_workers, worker_init_fn=set_worker_sharing_strategy)
-
-        train_dataset = BoundingBoxImageLoader(
-            # pickle_file=args.data_path+'/'+'df_metadata_train.df', # load train dataframe
-            pickle_file=os.environ['DATA_DIR_PATH']+'/'+'df_metadata_train.df',
-            root_dir=os.environ['DATA_DIR_PATH'],
-            transform=augmentations_medium()
-        )
-        args.num_val = 1000
-        args.num_images = 1277251
-        args.budget = 5000
-        args.initial_budget = 10000
-        args.num_classes = 47
     else:
         raise NotImplementedError
         

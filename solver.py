@@ -122,7 +122,7 @@ class Solver:
                 total_vae_loss = unsup_loss + transductive_loss + self.args.adversary_param * dsc_loss
                 optim_vae.zero_grad()
                 total_vae_loss.backward()
-                nn.utils.clip_grad_norm_(vae.parameters(), clip_value=1.0)
+                nn.utils.clip_grad_norm_(vae.parameters(), max_norm=1.0)
                 optim_vae.step()
 
                 # sample new batch if needed to train the adversarial network
@@ -162,7 +162,7 @@ class Solver:
 
                 optim_discriminator.zero_grad()
                 dsc_loss.backward()
-                nn.utils.clip_grad_norm_(discriminator.parameters(), clip_value=1.0)
+                nn.utils.clip_grad_norm_(discriminator.parameters(), max_norm=1.0)
                 optim_discriminator.step()
 
                 # sample new batch if needed to train the adversarial network
