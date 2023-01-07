@@ -35,8 +35,6 @@ def train_classifier_only(args,querry_dataloader, val_dataloader, task_model, un
         task_model.train()
 
         if  args.cuda:
-            vae = vae.cuda()
-            discriminator = discriminator.cuda()
             task_model = task_model.cuda()
         
         best_acc = 0
@@ -50,7 +48,6 @@ def train_classifier_only(args,querry_dataloader, val_dataloader, task_model, un
 
 
             if  args.cuda:
-
                 labeled_imgs = labeled_imgs.cuda()
                 unlabeled_imgs = unlabeled_imgs.cuda()
                 labels = labels.cuda()
