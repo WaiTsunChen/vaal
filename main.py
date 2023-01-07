@@ -4,6 +4,8 @@ import torch.utils.data.sampler  as sampler
 import torch.utils.data as data
 from torch.profiler import profile, record_function, ProfilerActivity
 
+from simulating_random_sample import train_classifier_only
+
 import numpy as np
 import argparse
 import random
@@ -120,9 +122,31 @@ def main(args):
         args.budget = 63862
         args.initial_budget = 127725
         args.num_classes = 47
+
+    elif args.dataset == 'snapshot_serengeti_random':
+        animal_test_dataset = BoundingBoxImageLoader(
+            # pickle_file=args.data_path+'/'+'df_metadata_test.df', # load test dataframe
+            pickle_file=os.environ['DATA_DIR_PATH']+'/'+'df_metadata_test.df',
+            root_dir=os.environ['DATA_DIR_PATH'],
+            transform=augmentations_medium())
+
+        test_dataloader = data.DataLoader(animal_test_dataset, batch_size=args.batch_size, shuffle=True,
+        num_workers=args.num_workers, worker_init_fn=set_worker_sharing_strategy)
+
+        train_dataset = BoundingBoxImageLoader(
+            # pickle_file=args.data_path+'/'+'df_metadata_train.df', # load train dataframe
+            pickle_file=os.environ['DATA_DIR_PATH']+'/'+'df_metadata_train.df',
+            root_dir=os.environ['DATA_DIR_PATH'],
+            transform=augmentations_medium()
+        )
+        args.num_val = 1000
+        args.num_images = 1277251
+        args.budget = 5000
+        args.initial_budget = 10000
+        args.num_classes = 47
     else:
         raise NotImplementedError
-
+        
     all_indices = set(np.arange(args.num_images))
     val_indices = random.sample(all_indices, args.num_val)
     all_indices = np.setdiff1d(list(all_indices), val_indices)
@@ -168,22 +192,28 @@ def main(args):
                     sampler=unlabeled_sampler, batch_size=args.batch_size, drop_last=False,
                     num_workers=args.num_workers)
 
-            # with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
-            # profile_memory=True) as prof:
-            # train the models on the current data
-            acc, vae, discriminator = solver.train(querry_dataloader,
-                                                val_dataloader,
-                                                task_model, 
-                                                vae, 
-                                                discriminator,
-                                                unlabeled_dataloader)
+            if 'snapshot_serengeti_random' in args.dataset:
+                acc= train_classifier_only(args,querry_dataloader,val_dataloader,task_model,unlabeled_dataloader)
+                print('Final accuracy with {}% of data is: {:.2f}'.format(int(split*100), acc))
+                accuracies.append(acc)
+                sampled_indices = random.sample(list(unlabeled_indices),args.budget)
 
-            # print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=100))
-            # prof.export_chrome_trace("trace.json")
-            print('Final accuracy with {}% of data is: {:.2f}'.format(int(split*100), acc))
-            accuracies.append(acc)
+            else:
+                # train the models on the current data
+                acc, vae, discriminator = solver.train(querry_dataloader,
+                                                    val_dataloader,
+                                                    task_model, 
+                                                    vae, 
+                                                    discriminator,
+                                                    unlabeled_dataloader)
 
-            sampled_indices = solver.sample_for_labeling(vae, discriminator, unlabeled_dataloader)
+                # print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=100))
+                # prof.export_chrome_trace("trace.json")
+                print('Final accuracy with {}% of data is: {:.2f}'.format(int(split*100), acc))
+                accuracies.append(acc)
+
+                sampled_indices = solver.sample_for_labeling(vae, discriminator, unlabeled_dataloader)
+
             current_indices = list(current_indices) + list(sampled_indices)
             sampler = data.sampler.SubsetRandomSampler(current_indices)
             querry_dataloader = data.DataLoader(train_dataset, sampler=sampler, 
