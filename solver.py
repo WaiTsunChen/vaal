@@ -19,8 +19,8 @@ class Solver:
         self.test_dataloader = test_dataloader
         self.device = device
 
-        self.bce_loss = nn.BCELoss()
-        #self.bce_loss = nn.BCEWithLogitsLoss()
+        #self.bce_loss = nn.BCELoss()
+        self.bce_loss = nn.BCEWithLogitsLoss()
         self.mse_loss = nn.MSELoss()
         self.ce_loss = nn.CrossEntropyLoss()
 
@@ -40,7 +40,7 @@ class Solver:
 
     def train(self, querry_dataloader, val_dataloader, task_model, vae, discriminator, unlabeled_dataloader):
         self.args.train_iterations = (self.args.num_images * self.args.train_epochs) // self.args.batch_size
-        lr_change = self.args.train_iterations // 4
+        lr_change = self.args.train_iterations // 10
         labeled_data = self.read_data(querry_dataloader) 
         unlabeled_data = self.read_data(unlabeled_dataloader, labels=False)
 
@@ -122,6 +122,7 @@ class Solver:
                 total_vae_loss = unsup_loss + transductive_loss + self.args.adversary_param * dsc_loss
                 optim_vae.zero_grad()
                 total_vae_loss.backward()
+                nn.utils.clip_grad_norm_(vae.parameters(), clip_value=1.0)
                 optim_vae.step()
 
                 # sample new batch if needed to train the adversarial network
@@ -161,6 +162,7 @@ class Solver:
 
                 optim_discriminator.zero_grad()
                 dsc_loss.backward()
+                nn.utils.clip_grad_norm_(discriminator.parameters(), clip_value=1.0)
                 optim_discriminator.step()
 
                 # sample new batch if needed to train the adversarial network
@@ -182,7 +184,7 @@ class Solver:
             # wandb.log({'task model':task_end-task_start})
             # wandb.log({'vae part':vae_end-vae_start})
             # wandb.log({'disc part':disc_end-disc_start})
-            if iter_count % 1000 == 0:
+            if iter_count % 500 == 0:
                 wandb.log({'iteration':iter_count})
                 wandb.log({'task_loss':task_loss.item()})
                 wandb.log({'vae_loss':total_vae_loss.item()})
