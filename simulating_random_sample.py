@@ -29,7 +29,7 @@ def train_classifier_only(args,querry_dataloader, val_dataloader, task_model, un
         unlabeled_data = read_data(unlabeled_dataloader, labels=False)
 
         optim_task_model = optim.SGD(task_model.parameters(), lr=0.01, weight_decay=5e-4, momentum=0.9)
-
+        ce_loss = nn.CrossEntropyLoss()
         wandb.watch([task_model],log='all',log_freq=9000)
 
         task_model.train()
@@ -47,14 +47,14 @@ def train_classifier_only(args,querry_dataloader, val_dataloader, task_model, un
             unlabeled_imgs = next(unlabeled_data)
 
 
-            if  args.cuda:
+            if  args.cuda:s
                 labeled_imgs = labeled_imgs.cuda()
                 unlabeled_imgs = unlabeled_imgs.cuda()
                 labels = labels.cuda()
 
             # task_model step
             preds = task_model(labeled_imgs)
-            task_loss = nn.CrossEntropyLoss(preds, labels)
+            task_loss = ce_loss(preds, labels)
             optim_task_model.zero_grad()
             task_loss.backward()
             optim_task_model.step()
