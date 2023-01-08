@@ -22,7 +22,7 @@ def read_data( dataloader, labels=True):
             for img, _, _ in dataloader:
                 yield img
 
-def train_classifier_only(args,querry_dataloader, val_dataloader, task_model, unlabeled_dataloader):
+def train_classifier_only(args,querry_dataloader, val_dataloader,test_dataloader, task_model, unlabeled_dataloader):
         args.train_iterations = (len(querry_dataloader.sampler) * args.train_epochs) // args.batch_size
         lr_change = args.train_iterations // 4
         labeled_data = read_data(querry_dataloader) 
@@ -47,7 +47,7 @@ def train_classifier_only(args,querry_dataloader, val_dataloader, task_model, un
             unlabeled_imgs = next(unlabeled_data)
 
 
-            if  args.cuda:s
+            if  args.cuda:
                 labeled_imgs = labeled_imgs.cuda()
                 unlabeled_imgs = unlabeled_imgs.cuda()
                 labels = labels.cuda()
@@ -79,7 +79,7 @@ def train_classifier_only(args,querry_dataloader, val_dataloader, task_model, un
             best_model = best_model.cuda()
             # best_model = best_model.to(self.device)
 
-        final_accuracy = test(best_model)
+        final_accuracy = test(best_model,tes)
         return final_accuracy
 
 def validate(args,task_model, loader):

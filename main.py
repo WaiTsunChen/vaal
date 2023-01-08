@@ -162,7 +162,7 @@ def main(args):
                     num_workers=args.num_workers)
 
             if 'snapshot_serengeti_random' in args.dataset:
-                acc= train_classifier_only(args,querry_dataloader,val_dataloader,task_model,unlabeled_dataloader)
+                acc= train_classifier_only(args,querry_dataloader,val_dataloader,test_dataloader,task_model,unlabeled_dataloader)
                 print('Final accuracy with {}% of data is: {:.2f}'.format(int(split*100), acc))
                 accuracies.append(acc)
                 sampled_indices = random.sample(list(unlabeled_indices),args.budget)
