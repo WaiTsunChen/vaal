@@ -106,6 +106,12 @@ def main(args):
             args.budget = 5000
             args.initial_budget = 10000
             args.num_classes = 47
+        elif args.dataset == 'snapshot_serengeti_10k':
+            args.num_val = 1000
+            args.num_images = 1277251
+            args.budget = 5000
+            args.initial_budget = 10000
+            args.num_classes = 47
         else:
             args.num_val = 5000
             args.num_images = 50000
