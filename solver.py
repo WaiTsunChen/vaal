@@ -184,7 +184,7 @@ class Solver:
             # wandb.log({'task model':task_end-task_start})
             # wandb.log({'vae part':vae_end-vae_start})
             # wandb.log({'disc part':disc_end-disc_start})
-            if iter_count % 500 == 0:
+            if iter_count % 100 == 0:
                 wandb.log({'iteration':iter_count})
                 wandb.log({'task_loss':task_loss.item()})
                 wandb.log({'vae_loss':total_vae_loss.item()})
@@ -194,7 +194,7 @@ class Solver:
                 print('Current vae model loss: {:.4f}'.format(total_vae_loss.item()))
                 print('Current discriminator model loss: {:.4f}'.format(dsc_loss.item()))
 
-            if iter_count % 9000 == 0:
+            if iter_count % 300 == 0:
                 acc = self.validate(task_model, val_dataloader)
                 if acc > best_acc:
                     best_acc = acc
@@ -209,6 +209,7 @@ class Solver:
             # best_model = best_model.to(self.device)
 
         final_accuracy = self.test(best_model)
+        wandb.log({'final_acc':final_accuracy})
         return final_accuracy, vae, discriminator
 
 
