@@ -123,10 +123,20 @@ def main(args):
         raise NotImplementedError
         
     all_indices = set(np.arange(args.num_images))
-    val_indices = random.sample(all_indices, args.num_val)
+    # fix starting conditions for random baseline and 10k
+    # for more accurate comparison
+    if 'random' in args.dataset or '10k' in args.dataset:
+        fixed_initial_sampler = random.Random() 
+        val_indices = fixed_initial_sampler.sample(all_indices, args.num_val)
+    else:
+        val_indices = random.sample(all_indices, args.num_val)
     all_indices = np.setdiff1d(list(all_indices), val_indices)
+    
+    if 'random' in args.dataset or '10k' in args.dataset:
+        initial_indices = fixed_initial_sampler.sample(list(all_indices), args.initial_budget)
+    else:
+        initial_indices = random.sample(list(all_indices), args.initial_budget)
 
-    initial_indices = random.sample(list(all_indices), args.initial_budget)
     sampler = data.sampler.SubsetRandomSampler(initial_indices)
     val_sampler = data.sampler.SubsetRandomSampler(val_indices)
 
