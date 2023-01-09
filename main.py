@@ -126,7 +126,8 @@ def main(args):
     # fix starting conditions for random baseline and 10k
     # for more accurate comparison
     if 'random' in args.dataset or '10k' in args.dataset:
-        fixed_initial_sampler = random.Random() 
+        fixed_initial_sampler = random.Random()
+        fixed_initial_sampler.seed(1234)
         val_indices = fixed_initial_sampler.sample(all_indices, args.num_val)
     else:
         val_indices = random.sample(all_indices, args.num_val)
