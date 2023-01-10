@@ -80,6 +80,7 @@ def train_classifier_only(args,querry_dataloader, val_dataloader,test_dataloader
             # best_model = best_model.to(self.device)
 
         final_accuracy = test(best_model,test_dataloader,task_model)
+        wandb.log({'final_acc':final_accuracy})
         return final_accuracy
 
 def validate(args,task_model, loader):
