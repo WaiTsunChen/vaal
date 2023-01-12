@@ -19,8 +19,8 @@ class Solver:
         self.test_dataloader = test_dataloader
         self.device = device
 
-        #self.bce_loss = nn.BCELoss()
-        self.bce_loss = nn.BCEWithLogitsLoss()
+        self.bce_loss = nn.BCELoss()
+        # self.bce_loss = nn.BCEWithLogitsLoss()
         self.mse_loss = nn.MSELoss()
         self.ce_loss = nn.CrossEntropyLoss()
 
