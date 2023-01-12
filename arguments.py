@@ -15,7 +15,8 @@ def get_args():
     parser.add_argument('--adversary_param', type=float, default=1, help='Hyperparameter for training. lambda2 in the paper')
     parser.add_argument('--out_path', type=str, default='./results', help='Path to where the output log will be')
     parser.add_argument('--log_name', type=str, default='accuracies.log', help='Final performance of the models will be saved with this name')
-    parser.add_argument('--num_workers',type=int, default=2, help='numbers of worker in Dataloader')
+    parser.add_argument('--num_workers',type=int, default=2, help='Numbers of worker in Dataloader')
+    parser.add_argument('--balanced',action='store_true', help='Loading the balanced Snapshot Serengeti Dataset')
     args = parser.parse_args()
 
     if not os.path.exists(args.out_path):
