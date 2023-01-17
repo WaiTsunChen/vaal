@@ -78,9 +78,9 @@ def main(args):
         args.num_classes = 1000
     
     elif 'snapshot_serengeti' in args.dataset:
+        test_file_name = 'df_balanced_top_10_metadata_test.df' if args.dataset == 'snapshot_serengeti_balanced_top_10' else 'df_metadata_test.df'
         animal_test_dataset = BoundingBoxImageLoader(
             # pickle_file=args.data_path+'/'+'df_metadata_test.df', # load test dataframe
-            test_file_name = 'df_balanced_top_10_metadata_test.df' if args.dataset == 'snapshot_serengeti_balanced_top_10' else 'df_metadata_test.df'
             pickle_file=os.environ['DATA_DIR_PATH']+'/'+ test_file_name,
             root_dir=os.environ['DATA_DIR_PATH'],
             transform=augmentations_medium())
