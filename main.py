@@ -87,7 +87,10 @@ def main(args):
         test_dataloader = data.DataLoader(animal_test_dataset, batch_size=args.batch_size, shuffle=True, 
         num_workers=args.num_workers, worker_init_fn=set_worker_sharing_strategy)
 
-        train_file_name = 'df_balanced_metadata_train.df' if args.balanced else 'df_metadata_train.df'
+        if args.dataset == 'df_balanced_top_10_metadata_train':
+            train_file_name = 'df_balanced_top_10_metadata_train.df'
+        else:
+            train_file_name = 'df_balanced_metadata_train.df' if args.balanced else 'df_metadata_train.df'
         train_dataset = BoundingBoxImageLoader(
             # pickle_file=args.data_path+'/'+'df_metadata_train.df', # load train dataframe
             pickle_file=os.environ['DATA_DIR_PATH']+'/'+train_file_name,
