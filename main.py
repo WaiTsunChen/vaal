@@ -87,7 +87,7 @@ def main(args):
         test_dataloader = data.DataLoader(animal_test_dataset, batch_size=args.batch_size, shuffle=True, 
         num_workers=args.num_workers, worker_init_fn=set_worker_sharing_strategy)
 
-        if args.dataset == 'df_balanced_top_10':
+        if args.dataset == 'snapshot_serengeti_balanced_top_10':
             train_file_name = 'df_balanced_top_10_metadata_train.df'
         else:
             train_file_name = 'df_balanced_metadata_train.df' if args.balanced else 'df_metadata_train.df'
@@ -128,7 +128,7 @@ def main(args):
             args.budget = 5000
             args.initial_budget = 10000
             args.num_classes = 47
-        elif args.dataset == 'df_balanced_top_10':
+        elif args.dataset == 'snapshot_serengeti_balanced_top_10':
             args.num_val = 10000
             args.num_images = 175000
             args.budget = 5000
