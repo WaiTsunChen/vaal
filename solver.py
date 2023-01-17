@@ -40,7 +40,7 @@ class Solver:
 
     def train(self, querry_dataloader, val_dataloader, task_model, vae, discriminator, unlabeled_dataloader):
         self.args.train_iterations = (len(querry_dataloader.sampler)* self.args.train_epochs) // self.args.batch_size
-        lr_change = self.args.train_iterations // 10
+        lr_change = self.args.train_iterations // 4
         labeled_data = self.read_data(querry_dataloader) 
         unlabeled_data = self.read_data(unlabeled_dataloader, labels=False)
 

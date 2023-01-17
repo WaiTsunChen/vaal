@@ -125,6 +125,12 @@ def main(args):
             args.budget = 5000
             args.initial_budget = 10000
             args.num_classes = 47
+        elif args.dataset == 'df_balanced_top_10_metadata_train':
+            args.num_val = 10000
+            args.num_images = 175000
+            args.budget = 5000
+            args.initial_budget = 10000
+            args.num_classes = 10
         else:
             args.num_val = 5000
             args.num_images = 50000
@@ -138,18 +144,15 @@ def main(args):
     all_indices = set(np.arange(args.num_images))
     # fix starting conditions for random baseline and 10k
     # for more accurate comparison
-    if 'random' in args.dataset or '10k' in args.dataset:
-        fixed_initial_sampler = random.Random()
-        fixed_initial_sampler.seed(1234)
-        val_indices = fixed_initial_sampler.sample(all_indices, args.num_val)
-    else:
-        val_indices = random.sample(all_indices, args.num_val)
+    fixed_initial_sampler = random.Random()
+    fixed_initial_sampler.seed(1234)
+    val_indices = fixed_initial_sampler.sample(all_indices, args.num_val)
+    # val_indices = random.sample(all_indices, args.num_val)
+
     all_indices = np.setdiff1d(list(all_indices), val_indices)
     
-    if 'random' in args.dataset or '10k' in args.dataset:
-        initial_indices = fixed_initial_sampler.sample(list(all_indices), args.initial_budget)
-    else:
-        initial_indices = random.sample(list(all_indices), args.initial_budget)
+    initial_indices = fixed_initial_sampler.sample(list(all_indices), args.initial_budget)
+    # initial_indices = random.sample(list(all_indices), args.initial_budget)
 
     sampler = data.sampler.SubsetRandomSampler(initial_indices)
     val_sampler = data.sampler.SubsetRandomSampler(val_indices)
