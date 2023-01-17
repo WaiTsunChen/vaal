@@ -105,31 +105,22 @@ def main(args):
             args.budget = 63862
             args.initial_budget = 127725
             args.num_classes = 47
-        elif args.dataset == 'snapshot_serengeti_random':
+        elif args.dataset == 'snapshot_serengeti_random' or \
+            args.dataset == 'snapshot_serengeti_10k':
             args.num_val = 10000
             args.num_images = 1277251
             args.budget = 5000
             args.initial_budget = 10000
             args.num_classes = 47
-        elif args.dataset == 'snapshot_serengeti_10k':
-            args.num_val = 10000
-            args.num_images = 1277251
-            args.budget = 5000
-            args.initial_budget = 10000
-            args.num_classes = 47
-        elif args.dataset == 'snapshot_serengeti_balanced_random':
+        elif args.dataset == 'snapshot_serengeti_balanced_random' or \
+            args.dataset == 'snapshot_serengeti_balanced_10k':
             args.num_val = 10000
             args.num_images = 451452
             args.budget = 5000
             args.initial_budget = 10000
             args.num_classes = 47
-        elif args.dataset == 'snapshot_serengeti_balanced_10k':
-            args.num_val = 10000
-            args.num_images = 451452
-            args.budget = 5000
-            args.initial_budget = 10000
-            args.num_classes = 47
-        elif args.dataset == 'snapshot_serengeti_balanced_top_10':
+        elif args.dataset == 'snapshot_serengeti_balanced_top_10' or \
+            args.dataset == 'snapshot_serengeti_balanced_top_10_random':
             args.num_val = 10000
             args.num_images = 175000
             args.budget = 5000
