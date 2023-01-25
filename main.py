@@ -39,7 +39,7 @@ def cifar_transformer():
         ])
 
 def main(args):
-    if args.dataset == 'cifar10':
+    if 'cifar10' in args.dataset:
         test_dataloader = data.DataLoader(
                 datasets.CIFAR10(args.data_path, download=True, transform=cifar_transformer(), train=False),
             batch_size=args.batch_size, drop_last=False,num_workers=args.num_workers)
