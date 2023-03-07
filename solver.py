@@ -117,9 +117,9 @@ class Solver:
                     # unlab_real_preds = unlab_real_preds.to(self.device)
 
                                
-                dsc_loss = self.bce_loss(labeled_preds, lab_real_preds.unsqueeze(1)) + \
+                adv_loss = self.bce_loss(labeled_preds, lab_real_preds.unsqueeze(1)) + \
                         self.bce_loss(unlabeled_preds, unlab_real_preds.unsqueeze(1))
-                total_vae_loss = unsup_loss + transductive_loss + self.args.adversary_param * dsc_loss
+                total_vae_loss = unsup_loss + transductive_loss + self.args.adversary_param * adv_loss
                 optim_vae.zero_grad()
                 total_vae_loss.backward()
                 nn.utils.clip_grad_norm_(vae.parameters(), max_norm=1.0)
@@ -157,8 +157,9 @@ class Solver:
                     # lab_real_preds = lab_real_preds.to(self.device)
                     # unlab_fake_preds = unlab_fake_preds.to(self.device)
                 
-                dsc_loss = self.bce_loss(labeled_preds, lab_real_preds.unsqueeze(1)) + \
-                        self.bce_loss(unlabeled_preds, unlab_fake_preds.unsqueeze(1))
+                dsc_lab_loss = self.bce_loss(labeled_preds, lab_real_preds.unsqueeze(1))
+                dsc_unlab_loss = self.bce_loss(unlabeled_preds, unlab_fake_preds.unsqueeze(1))
+                dsc_loss =  dsc_lab_loss +dsc_unlab_loss
 
                 optim_discriminator.zero_grad()
                 dsc_loss.backward()
@@ -187,8 +188,16 @@ class Solver:
             if iter_count % 100 == 0:
                 wandb.log({'iteration':iter_count})
                 wandb.log({'task_loss':task_loss.item()})
-                wandb.log({'vae_loss':total_vae_loss.item()})
-                wandb.log({'discriminator_loss':dsc_loss.item()})
+                wandb.log({'total_vae_loss':total_vae_loss.item()})
+                wandb.log({'total_discriminator_loss':dsc_loss.item()})
+
+                wandb.log({'vae_labeled_loss':unsup_loss.item()})
+                wandb.log({'vae_unlabeled_loss':transductive_loss.item()})
+                wandb.log({'adv_loss':adv_loss.item()})
+
+                wandb.log({'disc_labeled_loss':dsc_lab_loss.item()})
+                wandb.log({'disc_unlabeled_loss':dsc_unlab_loss.item()})
+
                 print('Current training iteration: {}'.format(iter_count))
                 print('Current task model loss: {:.4f}'.format(task_loss.item()))
                 print('Current vae model loss: {:.4f}'.format(total_vae_loss.item()))
