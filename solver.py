@@ -198,6 +198,14 @@ class Solver:
                 wandb.log({'disc_labeled_loss':dsc_lab_loss.item()})
                 wandb.log({'disc_unlabeled_loss':dsc_unlab_loss.item()})
 
+                wandb.log({"dsc_conf_mat_labeled" : wandb.plot.confusion_matrix(probs=None,
+                                        y_true= labeled_preds, preds=lab_real_preds.unsqueeze(1),
+                                        )})
+                wandb.log({"dsc_conf_mat_unlabeled" : wandb.plot.confusion_matrix(probs=None,
+                                        y_true= labeled_preds, preds=lab_real_preds.unsqueeze(1),
+                                        )})
+
+
                 print('Current training iteration: {}'.format(iter_count))
                 print('Current task model loss: {:.4f}'.format(task_loss.item()))
                 print('Current vae model loss: {:.4f}'.format(total_vae_loss.item()))
