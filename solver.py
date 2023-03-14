@@ -4,7 +4,7 @@ import torch.optim as optim
 
 import os
 import numpy as np
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 
 import sampler
 import copy
@@ -185,7 +185,7 @@ class Solver:
             # wandb.log({'task model':task_end-task_start})
             # wandb.log({'vae part':vae_end-vae_start})
             # wandb.log({'disc part':disc_end-disc_start})
-            if iter_count % 100 == 0:
+            if iter_count % 1 == 0:
                 wandb.log({'iteration':iter_count})
                 wandb.log({'task_loss':task_loss.item()})
                 wandb.log({'total_vae_loss':total_vae_loss.item()})
@@ -198,13 +198,27 @@ class Solver:
                 wandb.log({'disc_labeled_loss':dsc_lab_loss.item()})
                 wandb.log({'disc_unlabeled_loss':dsc_unlab_loss.item()})
 
-                wandb.log({"dsc_conf_mat_labeled" : wandb.plot.confusion_matrix(probs=None,
-                                        y_true= labeled_preds, preds=lab_real_preds.unsqueeze(1),
-                                        )})
-                wandb.log({"dsc_conf_mat_unlabeled" : wandb.plot.confusion_matrix(probs=None,
-                                        y_true= labeled_preds, preds=lab_real_preds.unsqueeze(1),
-                                        )})
+                labeled_preds = labeled_preds.cpu()
+                lab_real_preds = lab_real_preds.cpu()
+                unlabeled_preds = unlabeled_preds.cpu()
+                unlab_fake_preds = unlab_fake_preds.cpu()
 
+                true_lab = torch.cat((lab_real_preds,unlab_fake_preds),0)
+                pred_lab = torch.cat((labeled_preds, unlabeled_preds),0)
+
+                #log classification of Discriminator    
+                dsc_acc = accuracy_score(y_true=true_lab, y_pred=pred_lab)
+                dsc_precision = precision_score(y_true=true_lab, y_pred=pred_lab)
+                dsc_recall = recall_score(y_true=true_lab, y_pred=pred_lab)
+                dsc_f1 = f1_score(y_true=true_lab, y_pred=pred_lab)
+                wandb.log({
+                    'disc_acc':dsc_acc,
+                    'disc_precision':dsc_precision,
+                    'disc_recall':dsc_recall,
+                    'disc_f1':dsc_f1
+                })
+                
+                
 
                 print('Current training iteration: {}'.format(iter_count))
                 print('Current task model loss: {:.4f}'.format(task_loss.item()))
@@ -219,6 +233,17 @@ class Solver:
                 wandb.log({'task_acc':acc})
                 print('current step: {} acc: {}'.format(iter_count, acc))
                 print('best acc: ', best_acc)
+
+                #log Encoder Decoder
+                with torch.no_grad():
+                    recon, _, _, _ = vae(labeled_imgs)
+
+                img_true = wandb.Image(labeled_imgs, caption='True images')
+                img_recon_train = wandb.Image(recon, caption="after encode-decoding")
+                wandb.log({
+                    "True images": img_true,
+                    'reconstructed images':img_recon_train    
+                })
 
 
         if self.args.cuda:
