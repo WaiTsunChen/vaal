@@ -180,38 +180,33 @@ class Solver:
                         # labels = labels.to(self.device)
 
             disc_end = time.time()
-            # wandb.log({'get next images':load_img_end-load_img_start})
-            # wandb.log({'images to GPU':img_to_gpu_end-img_to_gpu_start})
-            # wandb.log({'task model':task_end-task_start})
-            # wandb.log({'vae part':vae_end-vae_start})
-            # wandb.log({'disc part':disc_end-disc_start})
             if iter_count % 1 == 0:
-                wandb.log({'iteration':iter_count})
-                wandb.log({'task_loss':task_loss.item()})
-                wandb.log({'total_vae_loss':total_vae_loss.item()})
-                wandb.log({'total_discriminator_loss':dsc_loss.item()})
-
-                wandb.log({'vae_labeled_loss':unsup_loss.item()})
-                wandb.log({'vae_unlabeled_loss':transductive_loss.item()})
-                wandb.log({'adv_loss':adv_loss.item()})
-
-                wandb.log({'disc_labeled_loss':dsc_lab_loss.item()})
-                wandb.log({'disc_unlabeled_loss':dsc_unlab_loss.item()})
-
                 labeled_preds = labeled_preds.cpu()
                 lab_real_preds = lab_real_preds.cpu()
                 unlabeled_preds = unlabeled_preds.cpu()
                 unlab_fake_preds = unlab_fake_preds.cpu()
 
-                true_lab = torch.cat((lab_real_preds,unlab_fake_preds),0)
-                pred_lab = torch.cat((labeled_preds, unlabeled_preds),0)
+                true_lab = torch.cat((lab_real_preds,unlab_fake_preds),0).detach()
+                pred_lab = torch.cat((labeled_preds, unlabeled_preds),0).detach()
+                true_lab = true_lab.round()
+                pred_lab = pred_lab.round()
 
                 #log classification of Discriminator    
                 dsc_acc = accuracy_score(y_true=true_lab, y_pred=pred_lab)
                 dsc_precision = precision_score(y_true=true_lab, y_pred=pred_lab)
                 dsc_recall = recall_score(y_true=true_lab, y_pred=pred_lab)
                 dsc_f1 = f1_score(y_true=true_lab, y_pred=pred_lab)
+
                 wandb.log({
+                    'iteration':iter_count,
+                    'task_loss':task_loss.item(),
+                    'total_vae_loss':total_vae_loss.item(),
+                    'total_discriminator_loss':dsc_loss.item(),
+                    'vae_labeled_loss':unsup_loss.item(),
+                    'vae_unlabeled_loss':transductive_loss.item(),
+                    'adv_loss':adv_loss.item(),
+                    'disc_labeled_loss':dsc_lab_loss.item(),
+                    'disc_unlabeled_loss':dsc_unlab_loss.item(),
                     'disc_acc':dsc_acc,
                     'disc_precision':dsc_precision,
                     'disc_recall':dsc_recall,
