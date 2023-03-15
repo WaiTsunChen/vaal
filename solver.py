@@ -213,8 +213,6 @@ class Solver:
                     'disc_f1':dsc_f1
                 })
                 
-                
-
                 print('Current training iteration: {}'.format(iter_count))
                 print('Current task model loss: {:.4f}'.format(task_loss.item()))
                 print('Current vae model loss: {:.4f}'.format(total_vae_loss.item()))
@@ -296,4 +294,8 @@ class Solver:
         MSE = self.mse_loss(recon, x)
         KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
         KLD = KLD * beta
+        wandb.log({
+                    "MSE_reconstruction": MSE,
+                    'Kull_Leibler_Divergence':KLD    
+                })
         return MSE + KLD
