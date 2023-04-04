@@ -180,7 +180,7 @@ class Solver:
                         # labels = labels.to(self.device)
 
             disc_end = time.time()
-            if iter_count % 1 == 0:
+            if iter_count % 100 == 0:
                 labeled_preds = labeled_preds.cpu()
                 lab_real_preds = lab_real_preds.cpu()
                 unlabeled_preds = unlabeled_preds.cpu()
