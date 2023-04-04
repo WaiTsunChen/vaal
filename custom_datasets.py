@@ -23,8 +23,7 @@ def cifar10_transformer():
     return torchvision.transforms.Compose([
            torchvision.transforms.RandomHorizontalFlip(),
            torchvision.transforms.ToTensor(),
-           transforms.Normalize(mean=[0.5, 0.5, 0.5,],
-                                std=[0.5, 0.5, 0.5]),
+        #    transforms.Normalize(mean=[0.5, 0.5, 0.5,],std=[0.5, 0.5, 0.5]),
        ])
 
 def augmentations_light():

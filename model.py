@@ -55,6 +55,7 @@ class VAE(nn.Module):
             nn.BatchNorm2d(128),
             nn.ReLU(True),
             nn.ConvTranspose2d(128, nc, 1),                       # B,   nc, 64, 64
+            nn.Sigmoid()
         )
         self.weight_init()
 
@@ -97,9 +98,9 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
         self.z_dim = z_dim
         self.net = nn.Sequential(
-            nn.Linear(z_dim, 512),
+            nn.Linear(z_dim, 1024),
             nn.ReLU(True),
-            nn.Linear(512, 512),
+            nn.Linear(1024, 512),
             nn.ReLU(True),
             nn.Linear(512, 1),
             nn.Sigmoid()
@@ -117,7 +118,7 @@ class Discriminator(nn.Module):
 
 def kaiming_init(m):
     if isinstance(m, (nn.Linear, nn.Conv2d)):
-        init.kaiming_normal(m.weight)
+        init.kaiming_normal_(m.weight)
         if m.bias is not None:
             m.bias.data.fill_(0)
     elif isinstance(m, (nn.BatchNorm1d, nn.BatchNorm2d)):

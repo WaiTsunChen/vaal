@@ -34,8 +34,7 @@ def set_worker_sharing_strategy(worker_id: int) -> None:
 def cifar_transformer():
     return transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.5, 0.5, 0.5,],
-                                std=[0.5, 0.5, 0.5]),
+            # transforms.Normalize(mean=[0.5, 0.5, 0.5,], std=[0.5, 0.5, 0.5]),
         ])
 
 def main(args):

@@ -291,8 +291,10 @@ class Solver:
 
 
     def vae_loss(self, x, recon, mu, logvar, beta):
-        MSE = self.mse_loss(recon, x)
-        KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+        # MSE = self.mse_loss(recon, x)
+        # KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+        MSE = nn.BCELoss(size_average=False)(recon, x) / x.size(0)
+        KLD = torch.mean(-0.5 * torch.sum(1 + logvar - mu ** 2 - logvar.exp(), dim = 1), dim = 0)
         KLD = KLD * beta
         wandb.log({
                     "MSE_reconstruction": MSE,
