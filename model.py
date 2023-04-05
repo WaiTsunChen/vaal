@@ -15,48 +15,116 @@ class View(nn.Module):
 
 class VAE(nn.Module):
     """Encoder-Decoder architecture for both WAE-MMD and WAE-GAN."""
-    def __init__(self, z_dim=32, nc=3):
+    def __init__(self, z_dim=32, nc=3,img_size=128):
         super(VAE, self).__init__()
         self.z_dim = z_dim
         self.nc = nc
-        self.encoder = nn.Sequential(
-            nn.Conv2d(nc, 128, 4, 2, 1, bias=False),              # B,  128, 32, 32
-            nn.BatchNorm2d(128),
-            nn.ReLU(True),
-            nn.Conv2d(128, 256, 4, 2, 1, bias=False),             # B,  256, 16, 16
-            nn.BatchNorm2d(256),
-            nn.ReLU(True),
-            nn.Conv2d(256, 512, 4, 2, 1, bias=False),             # B,  512,  8,  8
-            nn.BatchNorm2d(512),
-            nn.ReLU(True),
-            nn.Conv2d(512, 1024, 4, 2, 1, bias=False),            # B, 1024,  4,  4
-            nn.BatchNorm2d(1024),
-            nn.ReLU(True),
-            # View((-1, 1024*2*2)),                                 # B, 1024*4*4
-            View((-1, 1024*6*6)),
-        )
+        self.image_size = img_size
+        # self.encoder = nn.Sequential(
+        #     nn.Conv2d(nc, 128, 4, 2, 1, bias=False),              # B,  128, 32, 32
+        #     nn.BatchNorm2d(128),
+        #     nn.ReLU(True),
+        #     nn.Conv2d(128, 256, 4, 2, 1, bias=False),             # B,  256, 16, 16
+        #     nn.BatchNorm2d(256),
+        #     nn.ReLU(True),
+        #     nn.Conv2d(256, 512, 4, 2, 1, bias=False),             # B,  512,  8,  8
+        #     nn.BatchNorm2d(512),
+        #     nn.ReLU(True),
+        #     nn.Conv2d(512, 1024, 4, 2, 1, bias=False),            # B, 1024,  4,  4
+        #     nn.BatchNorm2d(1024),
+        #     nn.ReLU(True),
+        #     # View((-1, 1024*2*2)),                                 # B, 1024*4*4
+        #     View((-1, 1024*6*6)),
+        # )
 
         # self.fc_mu = nn.Linear(1024*2*2, z_dim)                            # B, z_dim
         # self.fc_logvar = nn.Linear(1024*2*2, z_dim)                            # B, z_dim
-        self.fc_mu = nn.Linear(1024*6*6, z_dim)                           
-        self.fc_logvar = nn.Linear(1024*6*6, z_dim)
-        self.decoder = nn.Sequential(
-            # nn.Linear(z_dim, 1024*4*4),                           # B, 1024*8*8
-            # View((-1, 1024, 4, 4)),                               # B, 1024,  8,  8
-            nn.Linear(z_dim, 1024*12*12),                          
-            View((-1, 1024, 12, 12)),
-            nn.ConvTranspose2d(1024, 512, 4, 2, 1, bias=False),   # B,  512, 16, 16
-            nn.BatchNorm2d(512),
-            nn.ReLU(True),
-            nn.ConvTranspose2d(512, 256, 4, 2, 1, bias=False),    # B,  256, 32, 32
-            nn.BatchNorm2d(256),
-            nn.ReLU(True),
-            nn.ConvTranspose2d(256, 128, 4, 2, 1, bias=False),    # B,  128, 64, 64
-            nn.BatchNorm2d(128),
-            nn.ReLU(True),
-            nn.ConvTranspose2d(128, nc, 1),                       # B,   nc, 64, 64
-            nn.Sigmoid()
+        # self.fc_mu = nn.Linear(1024*6*6, z_dim)                           
+        # self.fc_logvar = nn.Linear(1024*6*6, z_dim)
+        # self.decoder = nn.Sequential(
+        #     # nn.Linear(z_dim, 1024*4*4),                           # B, 1024*8*8
+        #     # View((-1, 1024, 4, 4)),                               # B, 1024,  8,  8
+        #     nn.Linear(z_dim, 1024*12*12),                          
+        #     View((-1, 1024, 12, 12)),
+        #     nn.ConvTranspose2d(1024, 512, 4, 2, 1, bias=False),   # B,  512, 16, 16
+        #     nn.BatchNorm2d(512),
+        #     nn.ReLU(True),
+        #     nn.ConvTranspose2d(512, 256, 4, 2, 1, bias=False),    # B,  256, 32, 32
+        #     nn.BatchNorm2d(256),
+        #     nn.ReLU(True),
+        #     nn.ConvTranspose2d(256, 128, 4, 2, 1, bias=False),    # B,  128, 64, 64
+        #     nn.BatchNorm2d(128),
+        #     nn.ReLU(True),
+        #     nn.ConvTranspose2d(128, nc, 1),                       # B,   nc, 64, 64
+        #     nn.Sigmoid()
+        # )
+
+        modules = []
+        if hidden_dims is None:
+            hidden_dims = [32, 64, 128, 256, 512]
+
+        conv_factor = self.image_size // 2 ** len(hidden_dims)
+        conv_factor = conv_factor**2
+
+        # Build Encoder
+        for h_dim in hidden_dims:
+            modules.append(
+                nn.Sequential(
+                    nn.Conv2d(in_channels, out_channels=h_dim,
+                              kernel_size= 3, stride= 2, padding  = 1),
+                    nn.BatchNorm2d(h_dim),
+                    nn.ReLU())
+            )
+            in_channels = h_dim
+
+        modules.append(
+            nn.Sequential(
+                View((-1,hidden_dims[-1] * conv_factor)))
         )
+
+        self.encoder = nn.Sequential(*modules)
+        self.fc_mu = nn.Linear(hidden_dims[-1] * conv_factor, z_dim)
+        self.fc_var = nn.Linear(hidden_dims[-1] * conv_factor, z_dim)
+
+        # Build Decoder
+        modules = []
+        self.decoder_input = nn.Linear(z_dim, hidden_dims[-1] * conv_factor)
+        hidden_dims.reverse()
+
+        for i in range(len(hidden_dims)):
+            modules.append(
+                nn.Sequential(
+                    nn.ConvTranspose2d(hidden_dims[i],
+                                       hidden_dims[i + 1],
+                                       kernel_size=3,
+                                       stride = 2,
+                                       padding=1,
+                                       output_padding=1),
+                    nn.BatchNorm2d(hidden_dims[i + 1]),
+                    nn.ReLU())
+            )
+
+        # add last Decoder layer
+        modules.append(
+            nn.Sequential(
+                nn.ConvTranspose2d(
+                    hidden_dims[-1],
+                    hidden_dims[-1],
+                    kernel_size=3,
+                    stride=2,
+                    padding=1,
+                    output_padding=1),
+                nn.BatchNorm2d(hidden_dims[-1]),
+                nn.LeakyReLU(),
+                nn.Conv2d(
+                    hidden_dims[-1],
+                    out_channels= 3,
+                    kernel_size= 3,
+                    padding= 1),
+                nn.Sigmoid())
+        )
+        
+        self.decoder = nn.Sequential(*modules)
         self.weight_init()
 
     def weight_init(self):
