@@ -64,7 +64,7 @@ class VAE(nn.Module):
 
         conv_factor = self.image_size // 2 ** len(hidden_dims)
         conv_factor = conv_factor**2
-
+        in_channels = nc
         # Build Encoder
         for h_dim in hidden_dims:
             modules.append(
@@ -83,14 +83,19 @@ class VAE(nn.Module):
 
         self.encoder = nn.Sequential(*modules)
         self.fc_mu = nn.Linear(hidden_dims[-1] * conv_factor, z_dim)
-        self.fc_var = nn.Linear(hidden_dims[-1] * conv_factor, z_dim)
+        self.fc_logvar = nn.Linear(hidden_dims[-1] * conv_factor, z_dim)
 
         # Build Decoder
         modules = []
-        self.decoder_input = nn.Linear(z_dim, hidden_dims[-1] * conv_factor)
-        hidden_dims.reverse()
+        modules.append(
+            nn.Sequential(
+                nn.Linear(z_dim, hidden_dims[-1] * conv_factor),
+                View((-1,hidden_dims[-1] * conv_factor))
+            )
+        )
 
-        for i in range(len(hidden_dims)):
+        hidden_dims.reverse()
+        for i in range(len(hidden_dims) -1 ):
             modules.append(
                 nn.Sequential(
                     nn.ConvTranspose2d(hidden_dims[i],
