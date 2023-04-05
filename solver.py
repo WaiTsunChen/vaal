@@ -99,10 +99,10 @@ class Solver:
                 # print(f'z: {z.shape}')
                 # print(f'mu: {mu.shape}')
                 # print(f'logvar: {logvar.shape}')
-                unsup_loss = self.vae_loss(labeled_imgs, recon, mu, logvar, self.args.beta)
+                unsup_loss = self.vae_loss(labeled_imgs, recon, mu, logvar, self.args.beta, iter_count)
                 unlab_recon, unlab_z, unlab_mu, unlab_logvar = vae(unlabeled_imgs)
                 transductive_loss = self.vae_loss(unlabeled_imgs, 
-                        unlab_recon, unlab_mu, unlab_logvar, self.args.beta)
+                        unlab_recon, unlab_mu, unlab_logvar, self.args.beta, iter_count)
             
                 labeled_preds = discriminator(mu)
                 unlabeled_preds = discriminator(unlab_mu)
@@ -290,14 +290,15 @@ class Solver:
         return correct / total * 100
 
 
-    def vae_loss(self, x, recon, mu, logvar, beta):
+    def vae_loss(self, x, recon, mu, logvar, beta, iteration):
         # MSE = self.mse_loss(recon, x)
         # KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
         MSE = nn.BCELoss(size_average=False)(recon, x) / x.size(0)
         KLD = torch.mean(-0.5 * torch.sum(1 + logvar - mu ** 2 - logvar.exp(), dim = 1), dim = 0)
         KLD = KLD * beta
-        wandb.log({
-                    "MSE_reconstruction": MSE,
-                    'Kull_Leibler_Divergence':KLD    
-                })
+        if iteration % 100 == 0:
+            wandb.log({
+                        "MSE_reconstruction": MSE,
+                        'Kull_Leibler_Divergence':KLD    
+                    })
         return MSE + KLD
