@@ -60,8 +60,7 @@ class VAE(nn.Module):
         # )
 
         modules = []
-        if hidden_dims is None:
-            hidden_dims = [32, 64, 128, 256, 512]
+        hidden_dims = [32, 64, 128, 256, 512]
 
         conv_factor = self.image_size // 2 ** len(hidden_dims)
         conv_factor = conv_factor**2
