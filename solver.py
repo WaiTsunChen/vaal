@@ -186,10 +186,12 @@ class Solver:
 
                 true_lab = torch.cat((lab_real_preds,unlab_fake_preds),0).detach()
                 pred_lab = torch.cat((labeled_preds, unlabeled_preds),0).detach()
+                true_lab_logging = true_lab
+                pred_lab_logging = pred_lab
                 true_lab = true_lab.round()
                 pred_lab = pred_lab.round()
 
-                #log classification of Discriminator    
+                #log classification of Discriminator
                 dsc_acc = accuracy_score(y_true=true_lab, y_pred=pred_lab)
                 dsc_precision = precision_score(y_true=true_lab, y_pred=pred_lab)
                 dsc_recall = recall_score(y_true=true_lab, y_pred=pred_lab)
@@ -225,10 +227,19 @@ class Solver:
                 print('current step: {} acc: {}'.format(iter_count, acc))
                 print('best acc: ', best_acc)
                 
+                #logging histograms
+                true_data_logging = [[pred] for pred in true_lab_logging.tolist()]
+                true_table = wandb.Table(data=true_data_logging, columns=["scores"])
+
+                pred_data_logging = [[pred] for pred in pred_lab_logging.tolist()]
+                pred_table = wandb.Table(data=pred_data_logging, columns=["scores"])
+
+
+                #log reconstruction of test images
                 for test_imgs, labels in self.test_dataloader:
                     if self.args.cuda:
                         # test_imgs = test_imgs.cuda()
-                        imgs = imgs.to(self.device)
+                        test_imgs = test_imgs.to(self.device)
                     break
 
                 #log Encoder Decoder
@@ -242,7 +253,9 @@ class Solver:
                 wandb.log({
                     "True images": img_true,
                     'reconstructed images':img_recon_train,
-                    'reconstructed test image': img_recon_test    
+                    'reconstructed test image': img_recon_test,
+                    'y_true_hist': wandb.plot.histogram(true_table, "scores",title="True Score Distribution"),    
+                    'y_pred_hist': wandb.plot.histogram(pred_table, "scores",title="Prediction Score Distribution")
                 })
 
 
