@@ -14,8 +14,8 @@ class AdversarySampler:
 
         for images, _, indices in data:
             if cuda:
-                images = images.cuda()
-                # images = images.to(self.device)
+                # images = images.cuda()
+                images = images.to(self.device)
 
             with torch.no_grad():
                 _, _, mu, _ = vae(images)
@@ -27,6 +27,13 @@ class AdversarySampler:
 
         all_preds = torch.stack(all_preds)
         all_preds = all_preds.view(-1)
+
+        #logging to wandb
+        data = [[pred] for pred in all_preds.tolist()]
+        table = wandb.Table(data=data, columns=["scores"])
+        wandb.log({'my_histogram': wandb.plot.histogram(table, "scores",
+        title="Prediction Score Distribution")})
+
         # need to multiply by -1 to be able to use torch.topk 
         all_preds *= -1
 

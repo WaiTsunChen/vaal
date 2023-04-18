@@ -160,7 +160,7 @@ def main(args):
             worker_init_fn=set_worker_sharing_strategy)
             
     args.cuda = args.cuda and torch.cuda.is_available()
-    device = torch.device('cuda')
+    device = torch.device('mps')
     # elif torch.backends.mps.is_available():
     #     device = torch.device('mps')
     # else:
@@ -179,7 +179,7 @@ def main(args):
             # need to retrain all the models on the new images
             # re initialize and retrain the models
             task_model = vgg.vgg16_bn(num_classes=args.num_classes)
-            vae = model.VAE(args.latent_dim,3,128)
+            vae = model.VAE(args.latent_dim,3,32)
             discriminator = model.Discriminator(args.latent_dim)
 
             unlabeled_indices = np.setdiff1d(list(all_indices), current_indices)
