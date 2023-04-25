@@ -4,14 +4,17 @@ import torch.optim as optim
 
 import os
 import numpy as np
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, confusion_matrix
+from sklearn.manifold import TSNE
 
 import sampler
 import copy
 
 import wandb
 import time
-
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
 
 class Solver:
     def __init__(self, args, test_dataloader, device):
@@ -233,7 +236,28 @@ class Solver:
 
                 pred_data_logging = [[pred] for pred in pred_lab_logging.tolist()]
                 pred_table = wandb.Table(data=pred_data_logging, columns=["scores"])
+                
+                #logging confusion matrix
+                cf = confusion_matrix(true_lab_logging,np.round(pred_lab_logging),labels=[0,1])
+                df_cm = pd.DataFrame(cf, index = ['unlabeled','labeled'],
+                columns = ['unlabeled','labeled'])
+                fig, ax = plt.subplots(figsize=(8,8))
+                sns.heatmap(df_cm,annot=True,ax=ax)
+                wandb.log({"confusion_matrix": wandb.Image(fig,caption='train')})
 
+                #logging tsne()
+                tsne = TSNE()
+                tsne_embeddings = np.concatenate([z.detach().cpu(),unlab_z.detach().cpu()],axis=0)
+                new_embeddings = tsne.fit_transform(tsne_embeddings)
+                d = {'feature_1':new_embeddings[:,0], 'feature_2':new_embeddings[:,1], 'index':np.arange(len(tsne_embeddings))}
+                d = pd.DataFrame(data=d)
+                d['is_informative'] = d['index'] < 64
+
+                # d.to_pickle(f'df_train_tsne.df')
+
+                fig, ax = plt.subplots(figsize=(6,6))
+                sns.scatterplot(data=d,x='feature_1',y='feature_2',hue='is_informative',ax=ax,s=10)
+                wandb.log({"tsne_plot": wandb.Image(fig,caption='train')})
 
                 #log reconstruction of test images
                 for test_imgs, labels in self.test_dataloader:
@@ -268,11 +292,11 @@ class Solver:
         return final_accuracy, vae, discriminator
 
 
-    def sample_for_labeling(self, vae, discriminator, unlabeled_dataloader):
+    def sample_for_labeling(self, vae, discriminator, unlabeled_dataloader, split):
         querry_indices = self.sampler.sample(vae, 
                                              discriminator, 
                                              unlabeled_dataloader, 
-                                             self.args.cuda)
+                                             self.args.cuda, split)
 
         return querry_indices
                 

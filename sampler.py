@@ -12,7 +12,7 @@ class AdversarySampler:
         self.device = device
 
 
-    def sample(self, vae, discriminator, data, cuda):
+    def sample(self, vae, discriminator, data, cuda, split):
         all_preds = []
         all_indices = []
         tsne_embeddings = []
@@ -29,7 +29,7 @@ class AdversarySampler:
             preds = preds.cpu().data
             all_preds.extend(preds)
             all_indices.extend(indices)
-            tsne_embeddings.append(z.numpy())
+            tsne_embeddings.append(z.cpu().numpy())
 
         all_preds = torch.stack(all_preds)
         all_preds = all_preds.view(-1)
@@ -59,11 +59,11 @@ class AdversarySampler:
         d = pd.DataFrame(data=d)
         d['is_informative'] = d['index'].isin(querry_pool_indices)
 
-        # d.to_pickle('df.df')
+        # d.to_pickle(f'df_sample_tsne_{split}.df')
 
         fig, ax = plt.subplots(figsize=(8,8))
         sns.scatterplot(data=d,x='feature_1',y='feature_2',hue='is_informative',ax=ax)
-        wandb.log({"tsne_plot": wandb.Image(fig)})
+        wandb.log({"tsne_plot": wandb.Image(fig,caption='sampling')})
 
         return querry_pool_indices
         

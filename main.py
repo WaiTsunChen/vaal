@@ -208,7 +208,7 @@ def main(args):
                 print('Final accuracy with {}% of data is: {:.2f}'.format(int(split*100), acc))
                 accuracies.append(acc)
 
-                sampled_indices = solver.sample_for_labeling(vae, discriminator, unlabeled_dataloader)
+                sampled_indices = solver.sample_for_labeling(vae, discriminator, unlabeled_dataloader,split)
 
             current_indices = list(current_indices) + list(sampled_indices)
             sampler = data.sampler.SubsetRandomSampler(current_indices)
