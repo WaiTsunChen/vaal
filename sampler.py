@@ -12,10 +12,12 @@ class AdversarySampler:
         self.device = device
 
 
-    def sample(self, vae, discriminator, data, cuda, split):
+    def sample(self, vae, discriminator, data, cuda, split,task_model):
         all_preds = []
         all_indices = []
         tsne_embeddings = []
+        task_predictions = []
+        tmp = []
 
         for images, _, indices in data:
             if cuda:
@@ -25,15 +27,21 @@ class AdversarySampler:
             with torch.no_grad():
                 _, z, mu, _ = vae(images)
                 preds = discriminator(mu)
+                task_preds = task_model(images)
 
             preds = preds.cpu().data
             all_preds.extend(preds)
             all_indices.extend(indices)
             tsne_embeddings.append(z.cpu().numpy())
+            tmp.append(task_preds.cpu())
+            t_preds = torch.nn.functional.softmax(task_preds.cpu(),dim=1)
+            entropy = -torch.sum(t_preds * torch.log2(t_preds),axis=1)
+            task_predictions.append(entropy.numpy())
 
         all_preds = torch.stack(all_preds)
         all_preds = all_preds.view(-1)
         tsne_embeddings = np.concatenate(tsne_embeddings, axis=0)
+        task_predictions = np.concatenate(task_predictions, axis=0)
 
         #logging to wandb
         data = [[pred] for pred in all_preds.tolist()]
@@ -58,12 +66,19 @@ class AdversarySampler:
         d = {'feature_1':new_embeddings[:,0], 'feature_2':new_embeddings[:,1], 'index':np.asarray(all_indices)}
         d = pd.DataFrame(data=d)
         d['is_informative'] = d['index'].isin(querry_pool_indices)
+        d['disc_preds'] = all_preds
+        d['task_model_preds'] = task_predictions
 
         # d.to_pickle(f'df_sample_tsne_{split}.df')
 
         fig, ax = plt.subplots(figsize=(8,8))
         sns.scatterplot(data=d,x='feature_1',y='feature_2',hue='is_informative',ax=ax)
         wandb.log({"tsne_plot": wandb.Image(fig,caption='sampling')})
+
+        # take highest entropy as sampling
+        _, querry_indices = torch.topk(task_predictions, int(self.budget))
+        querry_pool_indices = np.asarray(all_indices)[querry_indices]
+        print(list(querry_pool_indices[:200]))
 
         return querry_pool_indices
         

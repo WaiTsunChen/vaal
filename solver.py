@@ -289,14 +289,14 @@ class Solver:
 
         final_accuracy = self.test(best_model)
         wandb.log({'final_acc':final_accuracy})
-        return final_accuracy, vae, discriminator
+        return final_accuracy, vae, discriminator,task_model
 
 
-    def sample_for_labeling(self, vae, discriminator, unlabeled_dataloader, split):
+    def sample_for_labeling(self, vae, discriminator, unlabeled_dataloader, split,task_model):
         querry_indices = self.sampler.sample(vae, 
                                              discriminator, 
                                              unlabeled_dataloader, 
-                                             self.args.cuda, split)
+                                             self.args.cuda, split,task_model)
 
         return querry_indices
                 
