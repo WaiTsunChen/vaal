@@ -33,15 +33,15 @@ class AdversarySampler:
             all_preds.extend(preds)
             all_indices.extend(indices)
             tsne_embeddings.append(z.cpu().numpy())
-            tmp.append(task_preds.cpu())
             t_preds = torch.nn.functional.softmax(task_preds.cpu(),dim=1)
             entropy = -torch.sum(t_preds * torch.log2(t_preds),axis=1)
-            task_predictions.append(entropy.numpy())
+            task_predictions.extend(entropy)
 
         all_preds = torch.stack(all_preds)
         all_preds = all_preds.view(-1)
         tsne_embeddings = np.concatenate(tsne_embeddings, axis=0)
-        task_predictions = np.concatenate(task_predictions, axis=0)
+        task_predictions = torch.stack(task_predictions)
+        task_predictions = task_predictions.view(-1)
 
         #logging to wandb
         data = [[pred] for pred in all_preds.tolist()]
@@ -79,6 +79,12 @@ class AdversarySampler:
         _, querry_indices = torch.topk(task_predictions, int(self.budget))
         querry_pool_indices = np.asarray(all_indices)[querry_indices]
         print(list(querry_pool_indices[:200]))
+
+        # combining Disc and Entropy for sampling
+        num_samples = len(d)//2
+        s1 = d.sort_values(by='disc_preds',ascending=False).iloc[:num_samples]
+        querry_pool_indices = s1.sort_values(by='task_model_preds',ascending=False)[:self.budget]['index'].tolist()
+        querry_pool_indices = np.array(querry_pool_indices)
 
         return querry_pool_indices
         
