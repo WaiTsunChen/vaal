@@ -287,7 +287,7 @@ class Solver:
             # best_model = best_model.cuda()
             best_model = best_model.to(self.device)
 
-        final_accuracy = self.test(best_model)
+        final_accuracy = self.test(best_model,vae)
         wandb.log({'final_acc':final_accuracy})
         return final_accuracy, vae, discriminator,task_model
 
@@ -317,9 +317,11 @@ class Solver:
             total += imgs.size(0)
         return correct / total * 100
 
-    def test(self, task_model):
+    def test(self, task_model,vae):
         task_model.eval()
+        vae.eval()
         total, correct = 0, 0
+        test_loss = []
         for imgs, labels in self.test_dataloader:
             if self.args.cuda:
                 # imgs = imgs.cuda()
@@ -327,10 +329,18 @@ class Solver:
 
             with torch.no_grad():
                 preds = task_model(imgs)
-
+                recon,_,mu,logvar = vae(imgs)
+            
+            loss = self.vae_loss(imgs, recon, mu, logvar, self.args.beta, 1)
+            test_loss.append(loss.cpu().numpy())
             preds = torch.argmax(preds, dim=1).cpu().numpy()
             correct += accuracy_score(labels, preds, normalize=False)
             total += imgs.size(0)
+        
+        test_loss = np.array(test_loss).mean()
+        wandb.log({
+            "test_loss":test_loss
+        })
         return correct / total * 100
 
 
