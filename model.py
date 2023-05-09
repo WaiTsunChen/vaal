@@ -70,6 +70,8 @@ class VAE(nn.Module):
             modules.append(
                 nn.Sequential(
                     nn.Conv2d(in_channels=in_channels, out_channels=h_dim,kernel_size=3, padding=1 ),
+                    nn.BatchNorm2d(h_dim),
+                    nn.ReLU(),
                     nn.Conv2d(h_dim, out_channels=h_dim,
                               kernel_size= 3, stride= 2, padding  = 1),
                     nn.BatchNorm2d(h_dim),
@@ -105,6 +107,8 @@ class VAE(nn.Module):
                                        stride = 2,
                                        padding=1,
                                        output_padding=1),
+                    nn.BatchNorm2d(hidden_dims[i+1]),
+                    nn.ReLU(),
                     nn.ConvTranspose2d(hidden_dims[i + 1],
                                        hidden_dims[i + 1],
                                        kernel_size=3,
