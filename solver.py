@@ -247,7 +247,7 @@ class Solver:
 
                 #logging tsne()
                 tsne = TSNE()
-                tsne_embeddings = np.concatenate([z.detach().cpu(),unlab_z.detach().cpu()],axis=0)
+                tsne_embeddings = np.concatenate([mu.detach().cpu(),unlab_mu.detach().cpu()],axis=0)
                 new_embeddings = tsne.fit_transform(tsne_embeddings)
                 d = {'feature_1':new_embeddings[:,0], 'feature_2':new_embeddings[:,1], 'index':np.arange(len(tsne_embeddings))}
                 d = pd.DataFrame(data=d)

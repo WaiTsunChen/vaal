@@ -17,9 +17,10 @@ class AdversarySampler:
         all_indices = []
         tsne_embeddings = []
         task_predictions = []
+        labels = []
         tmp = []
 
-        for images, _, indices in data:
+        for images, labels, indices in data:
             if cuda:
                 # images = images.cuda()
                 images = images.to(self.device)
@@ -32,16 +33,18 @@ class AdversarySampler:
             preds = preds.cpu().data
             all_preds.extend(preds)
             all_indices.extend(indices)
-            tsne_embeddings.append(z.cpu().numpy())
+            tsne_embeddings.append(mu.cpu().numpy())
             t_preds = torch.nn.functional.softmax(task_preds.cpu(),dim=1)
             entropy = -torch.sum(t_preds * torch.log2(t_preds),axis=1)
             task_predictions.extend(entropy)
+            labels.append(labels)
 
         all_preds = torch.stack(all_preds)
         all_preds = all_preds.view(-1)
         tsne_embeddings = np.concatenate(tsne_embeddings, axis=0)
         task_predictions = torch.stack(task_predictions)
         task_predictions = task_predictions.view(-1)
+        labels = np.concatenate(labels, axis=0)
 
         #logging to wandb
         data = [[pred] for pred in all_preds.tolist()]
@@ -63,7 +66,7 @@ class AdversarySampler:
 
         tsne = TSNE()
         new_embeddings = tsne.fit_transform(tsne_embeddings)
-        d = {'feature_1':new_embeddings[:,0], 'feature_2':new_embeddings[:,1], 'index':np.asarray(all_indices)}
+        d = {'feature_1':new_embeddings[:,0], 'feature_2':new_embeddings[:,1], 'index':np.asarray(all_indices), 'labels':labels}
         d = pd.DataFrame(data=d)
         d['is_informative'] = d['index'].isin(querry_pool_indices)
         d['disc_preds'] = all_preds
@@ -74,6 +77,10 @@ class AdversarySampler:
         fig, ax = plt.subplots(figsize=(8,8))
         sns.scatterplot(data=d,x='feature_1',y='feature_2',hue='is_informative',ax=ax)
         wandb.log({"tsne_plot": wandb.Image(fig,caption='sampling')})
+
+        fig, ax = plt.subplots(figsize=(8,8))
+        sns.scatterplot(data=d,x='feature_1',y='feature_2',hue='labels',ax=ax)
+        wandb.log({"tsne_plot": wandb.Image(fig,caption='sampling with labels')})
 
         # take highest entropy as sampling
         _, querry_indices = torch.topk(task_predictions, int(self.budget))
