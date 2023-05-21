@@ -6,6 +6,7 @@ import wandb
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import seaborn as sns
+from PIL import Image
 class AdversarySampler:
     def __init__(self, budget, device):
         self.budget = budget
@@ -17,7 +18,8 @@ class AdversarySampler:
         all_indices = []
         tsne_embeddings = []
         task_predictions = []
-        labels = []
+        labels_list = []
+        images_list = []
         tmp = []
 
         for images, labels, indices in data:
@@ -37,14 +39,16 @@ class AdversarySampler:
             t_preds = torch.nn.functional.softmax(task_preds.cpu(),dim=1)
             entropy = -torch.sum(t_preds * torch.log2(t_preds),axis=1)
             task_predictions.extend(entropy)
-            labels.append(labels)
+            labels_list.append(labels)
+            images_list.append(images)
 
         all_preds = torch.stack(all_preds)
         all_preds = all_preds.view(-1)
         tsne_embeddings = np.concatenate(tsne_embeddings, axis=0)
         task_predictions = torch.stack(task_predictions)
         task_predictions = task_predictions.view(-1)
-        labels = np.concatenate(labels, axis=0)
+        labels_list = np.concatenate(labels_list, axis=0)
+        images_list = np.concatenate(images_list, axis=0)
 
         #logging to wandb
         data = [[pred] for pred in all_preds.tolist()]
@@ -66,7 +70,7 @@ class AdversarySampler:
 
         tsne = TSNE()
         new_embeddings = tsne.fit_transform(tsne_embeddings)
-        d = {'feature_1':new_embeddings[:,0], 'feature_2':new_embeddings[:,1], 'index':np.asarray(all_indices), 'labels':labels}
+        d = {'feature_1':new_embeddings[:,0], 'feature_2':new_embeddings[:,1], 'index':np.asarray(all_indices), 'labels':labels_list, 'images':images_list}
         d = pd.DataFrame(data=d)
         d['is_informative'] = d['index'].isin(querry_pool_indices)
         d['disc_preds'] = all_preds
@@ -74,13 +78,26 @@ class AdversarySampler:
 
         # d.to_pickle(f'df_sample_tsne_{split}.df')
 
+        # plot coordinates with sampled as hue
         fig, ax = plt.subplots(figsize=(8,8))
         sns.scatterplot(data=d,x='feature_1',y='feature_2',hue='is_informative',ax=ax)
         wandb.log({"tsne_plot": wandb.Image(fig,caption='sampling')})
 
+        # plot coordinates with class as hue
         fig, ax = plt.subplots(figsize=(8,8))
         sns.scatterplot(data=d,x='feature_1',y='feature_2',hue='labels',ax=ax)
         wandb.log({"tsne_plot": wandb.Image(fig,caption='sampling with labels')})
+
+        # plot coordinategs with images
+        fig, ax = plt.subplots(figsize=(8,8))
+        for i in range(len(d)):
+            img = Image.fromarray(d.iloc[i].images)
+            img.thumbnail((20, 20))  # Resizing the image for display purposes
+            x = d.iloc[i].feature_1
+            y = d.iloc[i].feature_2
+            ax.imshow(img, extent=(x-10, x+10, y-10, y+10), alpha=0.3)
+
+        wandb.log({"tsne_plot": wandb.Image(fig,caption='og images')})
 
         # take highest entropy as sampling
         _, querry_indices = torch.topk(task_predictions, int(self.budget))
