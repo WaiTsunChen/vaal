@@ -40,7 +40,7 @@ class AdversarySampler:
             entropy = -torch.sum(t_preds * torch.log2(t_preds),axis=1)
             task_predictions.extend(entropy)
             labels_list.append(labels)
-            images_list.append(images)
+            images_list.append(images.cpu().numpy())
 
         all_preds = torch.stack(all_preds)
         all_preds = all_preds.view(-1)
@@ -48,7 +48,7 @@ class AdversarySampler:
         task_predictions = torch.stack(task_predictions)
         task_predictions = task_predictions.view(-1)
         labels_list = np.concatenate(labels_list, axis=0)
-        images_list = np.concatenate(images_list, axis=0)
+        images_list = np.concatenate(images_list, axis=0).reshape(-1,3,32,32)
 
         #logging to wandb
         data = [[pred] for pred in all_preds.tolist()]
@@ -70,7 +70,7 @@ class AdversarySampler:
 
         tsne = TSNE()
         new_embeddings = tsne.fit_transform(tsne_embeddings)
-        d = {'feature_1':new_embeddings[:,0], 'feature_2':new_embeddings[:,1], 'index':np.asarray(all_indices), 'labels':labels_list, 'images':images_list}
+        d = {'feature_1':new_embeddings[:,0], 'feature_2':new_embeddings[:,1], 'index':np.asarray(all_indices), 'labels':labels_list, 'images':list(images_list)}
         d = pd.DataFrame(data=d)
         d['is_informative'] = d['index'].isin(querry_pool_indices)
         d['disc_preds'] = all_preds
@@ -89,15 +89,26 @@ class AdversarySampler:
         wandb.log({"tsne_plot": wandb.Image(fig,caption='sampling with labels')})
 
         # plot coordinategs with images
-        fig, ax = plt.subplots(figsize=(8,8))
-        for i in range(len(d)):
-            img = Image.fromarray(d.iloc[i].images)
-            img.thumbnail((20, 20))  # Resizing the image for display purposes
-            x = d.iloc[i].feature_1
-            y = d.iloc[i].feature_2
-            ax.imshow(img, extent=(x-10, x+10, y-10, y+10), alpha=0.3)
+        tx, ty = d.feature_1, d.feature_2
+        tx = (tx-np.min(tx)) / (np.max(tx) - np.min(tx))
+        ty = (ty-np.min(ty)) / (np.max(ty) - np.min(ty))
 
-        wandb.log({"tsne_plot": wandb.Image(fig,caption='og images')})
+        width = 4000
+        height = 3000
+        max_dim = 32
+        full_image = Image.new('RGB', (width, height))
+        for i in range(len(d)):
+            image = d.iloc[i].images 
+            image = np.transpose(image,(1,2,0))
+            tile = Image.fromarray(np.uint8(image*255),'RGB')
+            rs = max(1, tile.width / max_dim, tile.height / max_dim)
+            tile = tile.resize((int(tile.width / rs),
+                        int(tile.height / rs)),
+                       Image.LANCZOS)
+            full_image.paste(tile, (int((width-max_dim) * tx[i]),
+                            int((height-max_dim) * ty[i])))
+        
+        wandb.log({"tsne_plot": wandb.Image(full_image,caption='og images')})
 
         # take highest entropy as sampling
         _, querry_indices = torch.topk(task_predictions, int(self.budget))

@@ -304,6 +304,7 @@ class Solver:
     def validate(self, task_model, loader):
         task_model.eval()
         total, correct = 0, 0
+        Y_PREDS, Y_TRUE = [], []
         for imgs, labels, _ in loader:
             if self.args.cuda:
                 # imgs = imgs.cuda()
@@ -315,6 +316,20 @@ class Solver:
             preds = torch.argmax(preds, dim=1).cpu().numpy()
             correct += accuracy_score(labels, preds, normalize=False)
             total += imgs.size(0)
+            Y_PREDS.append(preds)
+            Y_TRUE.append(labels)
+
+
+        #logging confusion matrix
+        Y_PREDS = np.concatenate(Y_PREDS, axis=0)
+        Y_TRUE = np.concatenate(Y_TRUE, axis=0)
+        cf = confusion_matrix(Y_TRUE, Y_PREDS, labels=np.arange(10))
+        df_cm = pd.DataFrame(cf, index = ['airplane','automobile','bird','cat','deer','dog','frog','horse','ship','truck'],
+        columns = ['airplane','automobile','bird','cat','deer','dog','frog','horse','ship','truck'])
+        fig, ax = plt.subplots(figsize=(8,8))
+        sns.heatmap(df_cm,annot=True,ax=ax)
+        wandb.log({"confusion_matrix_validate": wandb.Image(fig,caption='validation')})
+        
         return correct / total * 100
 
     def test(self, task_model,vae):
