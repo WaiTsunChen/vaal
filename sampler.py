@@ -110,6 +110,29 @@ class AdversarySampler:
         
         wandb.log({"tsne_plot": wandb.Image(full_image,caption='og images')})
 
+        # plot coordinategs with images
+        chosen_d = d[d['is_informative']==True]
+        tx, ty = chosen_d.feature_1, chosen_d.feature_2
+        tx = (tx-np.min(tx)) / (np.max(tx) - np.min(tx))
+        ty = (ty-np.min(ty)) / (np.max(ty) - np.min(ty))
+
+        width = 4000
+        height = 3000
+        max_dim = 32
+        full_image = Image.new('RGB', (width, height))
+        for i in range(len(chosen_d)):
+            image = chosen_d.iloc[i].images 
+            image = np.transpose(image,(1,2,0))
+            tile = Image.fromarray(np.uint8(image*255),'RGB')
+            rs = max(1, tile.width / max_dim, tile.height / max_dim)
+            tile = tile.resize((int(tile.width / rs),
+                        int(tile.height / rs)),
+                       Image.LANCZOS)
+            full_image.paste(tile, (int((width-max_dim) * tx[i]),
+                            int((height-max_dim) * ty[i])))
+        
+        wandb.log({"tsne_plot": wandb.Image(full_image,caption='sampled images')})
+
         # take highest entropy as sampling
         _, querry_indices = torch.topk(task_predictions, int(self.budget))
         querry_pool_indices = np.asarray(all_indices)[querry_indices]
