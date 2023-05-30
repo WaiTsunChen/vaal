@@ -77,6 +77,17 @@ class AdversarySampler:
         d['task_model_preds'] = task_predictions
 
         # d.to_pickle(f'df_sample_tsne_{split}.df')
+        
+         # take highest entropy as sampling
+        _, querry_indices = torch.topk(task_predictions, int(self.budget))
+        querry_pool_indices = np.asarray(all_indices)[querry_indices]
+        print(list(querry_pool_indices[:200]))
+
+        # combining Disc and Entropy for sampling
+        num_samples = len(d)//2
+        s1 = d.sort_values(by='task_model_preds',ascending=False).iloc[:num_samples]
+        querry_pool_indices = s1.sort_values(by='disc_preds',ascending=False)[:self.budget]['index'].tolist()
+        querry_pool_indices = np.array(querry_pool_indices)
 
         # plot coordinates with sampled as hue
         fig, ax = plt.subplots(figsize=(8,8))
@@ -93,7 +104,7 @@ class AdversarySampler:
         tx = (tx-np.min(tx)) / (np.max(tx) - np.min(tx))
         ty = (ty-np.min(ty)) / (np.max(ty) - np.min(ty))
 
-        width = 4000
+        width = 3000
         height = 3000
         max_dim = 32
         full_image = Image.new('RGB', (width, height))
@@ -110,13 +121,14 @@ class AdversarySampler:
         
         wandb.log({"tsne_plot": wandb.Image(full_image,caption='og images')})
 
-        # plot coordinategs with images
+        # plot coordinategs with sampled images
         chosen_d = d[d['is_informative']==True]
+        chosen_d.reset_index(inplace=True, drop=True)
         tx, ty = chosen_d.feature_1, chosen_d.feature_2
         tx = (tx-np.min(tx)) / (np.max(tx) - np.min(tx))
         ty = (ty-np.min(ty)) / (np.max(ty) - np.min(ty))
 
-        width = 4000
+        width = 3000
         height = 3000
         max_dim = 32
         full_image = Image.new('RGB', (width, height))
@@ -132,17 +144,6 @@ class AdversarySampler:
                             int((height-max_dim) * ty[i])))
         
         wandb.log({"tsne_plot": wandb.Image(full_image,caption='sampled images')})
-
-        # take highest entropy as sampling
-        _, querry_indices = torch.topk(task_predictions, int(self.budget))
-        querry_pool_indices = np.asarray(all_indices)[querry_indices]
-        print(list(querry_pool_indices[:200]))
-
-        # combining Disc and Entropy for sampling
-        num_samples = len(d)//2
-        s1 = d.sort_values(by='disc_preds',ascending=False).iloc[:num_samples]
-        querry_pool_indices = s1.sort_values(by='task_model_preds',ascending=False)[:self.budget]['index'].tolist()
-        querry_pool_indices = np.array(querry_pool_indices)
 
         return querry_pool_indices
         
