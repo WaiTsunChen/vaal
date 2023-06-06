@@ -17,17 +17,18 @@ import seaborn as sns
 import pandas as pd
 
 class Solver:
-    def __init__(self, args, test_dataloader, device):
+    def __init__(self, args, test_dataloader, device,image_size):
         self.args = args
         self.test_dataloader = test_dataloader
         self.device = device
+        self.image_size = image_size
 
         self.bce_loss = nn.BCELoss()
         # self.bce_loss = nn.BCEWithLogitsLoss()
         self.mse_loss = nn.MSELoss()
         self.ce_loss = nn.CrossEntropyLoss()
 
-        self.sampler = sampler.AdversarySampler(self.args.budget,self.device)
+        self.sampler = sampler.AdversarySampler(self.args.budget,self.device,self.image_size)
 
 
     def read_data(self, dataloader, labels=True):
@@ -292,11 +293,11 @@ class Solver:
         return final_accuracy, vae, discriminator,task_model
 
 
-    def sample_for_labeling(self, vae, discriminator, unlabeled_dataloader, split,task_model):
+    def sample_for_labeling(self, vae, discriminator, unlabeled_dataloader, split,task_model,labeled_dataloader):
         querry_indices = self.sampler.sample(vae, 
                                              discriminator, 
                                              unlabeled_dataloader, 
-                                             self.args.cuda, split,task_model)
+                                             self.args.cuda, split,task_model,labeled_dataloader)
 
         return querry_indices
                 

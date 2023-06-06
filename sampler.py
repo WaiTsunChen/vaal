@@ -6,14 +6,15 @@ import wandb
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import seaborn as sns
-from PIL import Image
+from PIL import Image, ImageOps
 class AdversarySampler:
-    def __init__(self, budget, device):
+    def __init__(self, budget, device, image_size):
         self.budget = budget
         self.device = device
+        self.image_size = image_size
 
 
-    def sample(self, vae, discriminator, data, cuda, split,task_model):
+    def sample(self, vae, discriminator, unlabeled_data, cuda, split,task_model,labeled_data):
         all_preds = []
         all_indices = []
         tsne_embeddings = []
@@ -22,7 +23,7 @@ class AdversarySampler:
         images_list = []
         tmp = []
 
-        for images, labels, indices in data:
+        for images, labels, indices in unlabeled_data:
             if cuda:
                 # images = images.cuda()
                 images = images.to(self.device)
@@ -48,7 +49,30 @@ class AdversarySampler:
         task_predictions = torch.stack(task_predictions)
         task_predictions = task_predictions.view(-1)
         labels_list = np.concatenate(labels_list, axis=0)
-        images_list = np.concatenate(images_list, axis=0).reshape(-1,3,32,32)
+        images_list = np.concatenate(images_list, axis=0).reshape(-1,3,self.image_size,self.image_size)
+
+        #load labled images for visualisation
+        labeled_all_indices = []
+        labeled_tsne_embeddings = []
+        labeled_labels_list = []
+        labeled_images_list = []
+
+        for images, labels, indices in labeled_data:
+            if cuda:
+                # images = images.cuda()
+                images = images.to(self.device)
+
+            with torch.no_grad():
+                _, z, mu, _ = vae(images)
+
+            labeled_all_indices.extend(indices)
+            labeled_tsne_embeddings.append(mu.cpu().numpy())
+            labeled_labels_list.append(labels)
+            labeled_images_list.append(images.cpu().numpy())
+
+        labeled_tsne_embeddings = np.concatenate(labeled_tsne_embeddings, axis=0)
+        labeled_labels_list = np.concatenate(labeled_labels_list, axis=0)
+        labeled_images_list = np.concatenate(labeled_images_list, axis=0).reshape(-1,3,self.image_size,self.image_size)
 
         #logging to wandb
         data = [[pred] for pred in all_preds.tolist()]
@@ -69,16 +93,17 @@ class AdversarySampler:
         print(list(not_querry_pool_indices[:200]))
 
         tsne = TSNE()
-        new_embeddings = tsne.fit_transform(tsne_embeddings)
-        d = {'feature_1':new_embeddings[:,0], 'feature_2':new_embeddings[:,1], 'index':np.asarray(all_indices), 'labels':labels_list, 'images':list(images_list)}
+        new_embeddings = tsne.fit_transform(np.concatenate((tsne_embeddings, labeled_tsne_embeddings), axis=0))
+        d = {'feature_1':new_embeddings[:len(tsne_embeddings),0], 'feature_2':new_embeddings[:len(tsne_embeddings),1], 'index':np.asarray(all_indices), 'labels':labels_list, 'images':list(images_list)}
         d = pd.DataFrame(data=d)
         d['is_informative'] = d['index'].isin(querry_pool_indices)
         d['disc_preds'] = all_preds
         d['task_model_preds'] = task_predictions
+        d['is_training'] = False
 
         # d.to_pickle(f'df_sample_tsne_{split}.df')
         
-         # take highest entropy as sampling
+        # take highest entropy as sampling
         _, querry_indices = torch.topk(task_predictions, int(self.budget))
         querry_pool_indices = np.asarray(all_indices)[querry_indices]
         print(list(querry_pool_indices[:200]))
@@ -122,8 +147,14 @@ class AdversarySampler:
         wandb.log({"tsne_plot": wandb.Image(full_image,caption='og images')})
 
         # plot coordinategs with sampled images
+        labeled_d = {'feature_1':new_embeddings[len(tsne_embeddings):,0], 'feature_2':new_embeddings[len(tsne_embeddings):,1], 'index':np.asarray(labeled_all_indices), 'labels':labeled_labels_list, 'images':list(labeled_images_list)}
+        labeled_d = pd.DataFrame(data=labeled_d)
+        labeled_d['is_informative'] = False
+        labeled_d['is_training'] = True
+
         chosen_d = d[d['is_informative']==True]
         chosen_d.reset_index(inplace=True, drop=True)
+        chosen_d = pd.concat([chosen_d, labeled_d], ignore_index=True)
         tx, ty = chosen_d.feature_1, chosen_d.feature_2
         tx = (tx-np.min(tx)) / (np.max(tx) - np.min(tx))
         ty = (ty-np.min(ty)) / (np.max(ty) - np.min(ty))
@@ -140,6 +171,8 @@ class AdversarySampler:
             tile = tile.resize((int(tile.width / rs),
                         int(tile.height / rs)),
                        Image.LANCZOS)
+            if chosen_d.iloc[i].is_training:
+                tile = ImageOps.expand(tile,border=5,fill='yellow')
             full_image.paste(tile, (int((width-max_dim) * tx[i]),
                             int((height-max_dim) * ty[i])))
         

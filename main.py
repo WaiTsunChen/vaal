@@ -166,7 +166,8 @@ def main(args):
     # else:
     #     device = torch.device('cpu')
     # args.cuda = False
-    solver = Solver(args, test_dataloader,device)
+    image_size = 32
+    solver = Solver(args, test_dataloader,device,image_size)
 
     splits = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
 
@@ -179,7 +180,7 @@ def main(args):
             # need to retrain all the models on the new images
             # re initialize and retrain the models
             task_model = vgg.vgg16_bn(num_classes=args.num_classes)
-            vae = model.VAE(args.latent_dim,3,32)
+            vae = model.VAE(args.latent_dim,3,image_size)
             discriminator = model.Discriminator(args.latent_dim)
 
             unlabeled_indices = np.setdiff1d(list(all_indices), current_indices)
@@ -208,7 +209,7 @@ def main(args):
                 print('Final accuracy with {}% of data is: {:.2f}'.format(int(split*100), acc))
                 accuracies.append(acc)
 
-                sampled_indices = solver.sample_for_labeling(vae, discriminator, unlabeled_dataloader,split,task_model)
+                sampled_indices = solver.sample_for_labeling(vae, discriminator, unlabeled_dataloader,split,task_model, querry_dataloader)
 
             current_indices = list(current_indices) + list(sampled_indices)
             sampler = data.sampler.SubsetRandomSampler(current_indices)
