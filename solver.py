@@ -349,7 +349,7 @@ class Solver:
                 _, z, mu, _ = vae(imgs)
                 preds = discriminator(mu)
 
-            Y_PREDS.append(preds)
+            Y_PREDS.append(preds.cpu().numpy())
 
         Y_PREDS = np.concatenate(Y_PREDS, axis=0)
         Y_TRUE = np.zeros_like(Y_PREDS)
@@ -358,11 +358,12 @@ class Solver:
         columns = ['unlabeled','labeled'])
         fig, ax = plt.subplots(figsize=(8,8))
         sns.heatmap(df_cm,annot=True,ax=ax)
-        wandb.log({"confusion_matrix_validate": wandb.Image(fig,caption='disc_validation')})
 
         pred_data_logging = Y_PREDS
         pred_table = wandb.Table(data=pred_data_logging, columns=["scores"])
         wandb.log({
+            'discriminator_evaluation_acc':(1 - np.round(Y_PREDS).mean()),
+            "confusion_matrix_validate": wandb.Image(fig,caption='disc_validation'),
             'discriminator evaluation': wandb.plot.histogram(pred_table, "scores",title="disc Prediction Distribution")
         })
     def test(self, task_model,vae):
