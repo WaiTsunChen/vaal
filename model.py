@@ -183,6 +183,12 @@ class Discriminator(nn.Module):
         self.net = nn.Sequential(
             nn.Linear(z_dim, 1024),
             nn.ReLU(True),
+            nn.Linear(1024, 1024),
+            nn.ReLU(True),
+            nn.Linear(1024, 1024),
+            nn.ReLU(True),
+            nn.Linear(1024, 1024),
+            nn.ReLU(True),
             nn.Linear(1024, 512),
             nn.ReLU(True),
             nn.Linear(512, 1),

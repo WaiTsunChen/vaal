@@ -68,7 +68,7 @@ class Solver:
         
         best_acc = 0
         for iter_count in range(self.args.train_iterations):
-            if iter_count is not 0 and iter_count % lr_change == 0:
+            if iter_count != 0 and iter_count % lr_change == 0:
                 for param in optim_task_model.param_groups:
                     param['lr'] = param['lr'] / 10
             load_img_start = time.time()
@@ -223,14 +223,18 @@ class Solver:
                 print('Current discriminator model loss: {:.4f}'.format(dsc_loss.item()))
 
             if iter_count % 300 == 0:
-                acc = self.validate(task_model, val_dataloader)
+                acc = self.validate(task_model, val_dataloader) # evaluate taskmodel on validation-set
                 if acc > best_acc:
                     best_acc = acc
                     best_model = copy.deepcopy(task_model)
                 wandb.log({'task_acc':acc})
                 print('current step: {} acc: {}'.format(iter_count, acc))
                 print('best acc: ', best_acc)
-                
+
+                #evaluate discriminator on validation-set
+                acc_eval_disc = self.validate_discriminator(discriminator, vae, val_dataloader)
+                wandb.log({'eval_disc_acc':acc_eval_disc})
+
                 #logging histograms
                 true_data_logging = [[pred] for pred in true_lab_logging.tolist()]
                 true_table = wandb.Table(data=true_data_logging, columns=["scores"])
@@ -333,6 +337,34 @@ class Solver:
         
         return correct / total * 100
 
+    def validate_discriminator(self,discriminator,vae,loader):
+        vae.eval()
+        discriminator.eval()
+        Y_PREDS, Y_TRUE = [], []
+        for imgs, lables, _ in loader:
+            if self.args.cuda:
+                imgs = imgs.to(self.device)
+
+            with torch.no_grad():
+                _, z, mu, _ = vae(imgs)
+                preds = discriminator(mu)
+
+            Y_PREDS.append(preds)
+
+        Y_PREDS = np.concatenate(Y_PREDS, axis=0)
+        Y_TRUE = np.zeros_like(Y_PREDS)
+        cf = confusion_matrix(Y_TRUE, np.round(Y_PREDS), labels=np.arange(2))
+        df_cm = pd.DataFrame(cf, index = ['unlabeled','labeled'],
+        columns = ['unlabeled','labeled'])
+        fig, ax = plt.subplots(figsize=(8,8))
+        sns.heatmap(df_cm,annot=True,ax=ax)
+        wandb.log({"confusion_matrix_validate": wandb.Image(fig,caption='disc_validation')})
+
+        pred_data_logging = Y_PREDS
+        pred_table = wandb.Table(data=pred_data_logging, columns=["scores"])
+        wandb.log({
+            'discriminator evaluation': wandb.plot.histogram(pred_table, "scores",title="disc Prediction Distribution")
+        })
     def test(self, task_model,vae):
         task_model.eval()
         vae.eval()
