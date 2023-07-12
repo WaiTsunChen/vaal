@@ -42,11 +42,13 @@ class Solver:
                     yield img
 
 
-    def train(self, querry_dataloader, val_dataloader, task_model, vae, discriminator, unlabeled_dataloader):
+    def train(self, querry_dataloader, val_dataloader, task_model, vae, discriminator, unlabeled_dataloader, disc_val_labeled_dataloader,disc_val_unlabeled_dataloader):
         self.args.train_iterations = (len(querry_dataloader.sampler)* self.args.train_epochs) // self.args.batch_size
         lr_change = self.args.train_iterations // 4
         labeled_data = self.read_data(querry_dataloader) 
         unlabeled_data = self.read_data(unlabeled_dataloader, labels=False)
+        disc_val_labeled_data = self.read_data(disc_val_labeled_dataloader)
+        disc_val_unlabeled_data = self.read_data(disc_val_unlabeled_dataloader, labels=False)
 
         optim_vae = optim.Adam(vae.parameters(), lr=5e-4)
         optim_task_model = optim.SGD(task_model.parameters(), lr=0.01, weight_decay=5e-4, momentum=0.9)
@@ -74,6 +76,9 @@ class Solver:
             load_img_start = time.time()
             labeled_imgs, labels = next(labeled_data)
             unlabeled_imgs = next(unlabeled_data)
+
+            disc_val_labeled_imgs, disc_val_labeled_labels = next(disc_val_labeled_data)
+            disc_val_unlabeled_imgs = next(disc_val_unlabeled_data)
             load_img_end = time.time()
 
             if self.args.cuda:
@@ -127,6 +132,35 @@ class Solver:
                 nn.utils.clip_grad_norm_(vae.parameters(), max_norm=1.0)
                 optim_vae.step()
 
+                # second ------------------------------
+                disc_val_recon, disc_val_z, disc_val_mu, disc_val_logvar = vae(disc_val_labeled_imgs)
+                disc_val_unsup_loss = self.vae_loss(disc_val_labeled_imgs, disc_val_recon, disc_val_mu, disc_val_logvar, self.args.beta, iter_count)
+                disc_val_unlab_recon, disc_val_unlab_z, disc_val_unlab_mu, disc_val_unlab_logvar = vae(disc_val_unlabeled_imgs)
+                disc_val_transductive_loss = self.vae_loss(disc_val_unlabeled_imgs, 
+                        disc_val_unlab_recon, disc_val_unlab_mu, disc_val_unlab_logvar, self.args.beta, iter_count)
+            
+                disc_val_labeled_preds = discriminator(disc_val_mu)
+                disc_val_unlabeled_preds = discriminator(disc_val_unlab_mu)
+                
+                disc_val_lab_real_preds = torch.ones(disc_val_labeled_imgs.size(0))
+                disc_val_unlab_real_preds = torch.ones(disc_val_unlabeled_imgs.size(0))
+                    
+                if self.args.cuda:
+                    # lab_real_preds = lab_real_preds.cuda()
+                    # unlab_real_preds = unlab_real_preds.cuda()
+                    disc_val_labeled_preds = disc_val_labeled_preds.to(self.device)
+                    disc_val_unlabeled_preds = disc_val_unlabeled_preds.to(self.device)
+
+                               
+                disc_val_adv_loss = self.bce_loss(disc_val_labeled_preds, disc_val_lab_real_preds.unsqueeze(1)) + \
+                        self.bce_loss(disc_val_unlabeled_preds, disc_val_unlab_real_preds.unsqueeze(1))
+                disc_val_total_vae_loss = disc_val_unsup_loss + disc_val_transductive_loss + self.args.adversary_param * disc_val_adv_loss
+                optim_vae.zero_grad()
+                disc_val_total_vae_loss.backward()
+                nn.utils.clip_grad_norm_(vae.parameters(), max_norm=1.0)
+                optim_vae.step()
+                # ---------------------------------------------
+
                 # sample new batch if needed to train the adversarial network
                 if count < (self.args.num_vae_steps - 1):
                     labeled_imgs, _ = next(labeled_data)
@@ -139,8 +173,8 @@ class Solver:
                         labeled_imgs = labeled_imgs.to(self.device)
                         unlabeled_imgs = unlabeled_imgs.to(self.device)
                         labels = labels.to(self.device)
-            vae_end = time.time()
-            disc_start =time.time()
+           
+
             # Discriminator step
             for count in range(self.args.num_adv_steps):
                 with torch.no_grad():
@@ -232,7 +266,7 @@ class Solver:
                 print('best acc: ', best_acc)
 
                 #evaluate discriminator on validation-set
-                acc_eval_disc = self.validate_discriminator(discriminator, vae, val_dataloader)
+                acc_eval_disc = self.validate_discriminator(discriminator, vae, disc_val_labeled_dataloader,disc_val_unlabeled_dataloader)
                 wandb.log({'eval_disc_acc':acc_eval_disc})
 
                 #logging histograms
@@ -337,11 +371,11 @@ class Solver:
         
         return correct / total * 100
 
-    def validate_discriminator(self,discriminator,vae,loader):
+    def validate_discriminator(self,discriminator,vae,labeled_loader,unlabeled_loader):
         vae.eval()
         discriminator.eval()
         Y_PREDS, Y_TRUE = [], []
-        for imgs, lables, _ in loader:
+        for idx, (imgs, lables, _) in enumerate(labeled_loader):
             if self.args.cuda:
                 imgs = imgs.to(self.device)
 
@@ -350,9 +384,21 @@ class Solver:
                 preds = discriminator(mu)
 
             Y_PREDS.append(preds.cpu().numpy())
+            Y_TRUE.append(np.ones(preds.shape))
+        
+        for idx, (imgs, lables, _) in enumerate(unlabeled_loader):
+            if self.args.cuda:
+                imgs = imgs.to(self.device)
 
+            with torch.no_grad():
+                _, z, mu, _ = vae(imgs)
+                preds = discriminator(mu)
+
+            Y_PREDS.append(preds.cpu().numpy())
+            Y_TRUE.append(np.zeros(preds.shape))
+      
         Y_PREDS = np.concatenate(Y_PREDS, axis=0)
-        Y_TRUE = np.zeros_like(Y_PREDS)
+        Y_TRUE = np.concatenate(Y_TRUE,axis=0)
         cf = confusion_matrix(Y_TRUE, np.round(Y_PREDS), labels=np.arange(2))
         df_cm = pd.DataFrame(cf, index = ['unlabeled','labeled'],
         columns = ['unlabeled','labeled'])
@@ -362,7 +408,7 @@ class Solver:
         pred_data_logging = Y_PREDS
         pred_table = wandb.Table(data=pred_data_logging, columns=["scores"])
         wandb.log({
-            'discriminator_evaluation_acc':(1 - np.round(Y_PREDS).mean()),
+            'discriminator_evaluation_acc':accuracy_score(Y_TRUE,np.round(Y_PREDS)), #(1 - np.round(Y_PREDS).mean())
             "confusion_matrix_validate": wandb.Image(fig,caption='disc_validation'),
             'discriminator evaluation': wandb.plot.histogram(pred_table, "scores",title="disc Prediction Distribution")
         })

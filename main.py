@@ -144,6 +144,10 @@ def main(args):
     # val_indices = random.sample(all_indices, args.num_val)
 
     all_indices = np.setdiff1d(list(all_indices), val_indices)
+    disc_val_labeled_indices = fixed_initial_sampler.sample(list(all_indices), 200) # create dataloader for validation
+    all_indices = np.setdiff1d(list(all_indices), disc_val_labeled_indices)
+    disc_val_unlabeled_indices = fixed_initial_sampler.sample(list(all_indices),200)
+    all_indices = np.setdiff1d(list(all_indices), disc_val_unlabeled_indices)
     
     initial_indices = fixed_initial_sampler.sample(list(all_indices), args.initial_budget)
     # initial_indices = random.sample(list(all_indices), args.initial_budget)
@@ -158,6 +162,12 @@ def main(args):
     val_dataloader = data.DataLoader(train_dataset, sampler=val_sampler,
             batch_size=args.batch_size, drop_last=False, num_workers=args.num_workers,
             worker_init_fn=set_worker_sharing_strategy)
+    disc_val_labeled_dataloader = data.DataLoader(train_dataset, sampler=disc_val_labeled_indices,
+            batch_size=args.batch_size, drop_last=False, num_workers=args.num_workers,
+            worker_init_fn=set_worker_sharing_strategy)
+    disc_val_unlabeled_dataloader = data.DataLoader(train_dataset, sampler=disc_val_unlabeled_indices,
+            batch_size=args.batch_size, drop_last=False, num_workers=args.num_workers,
+            worker_init_fn=set_worker_sharing_strategy)
             
     args.cuda = args.cuda and torch.cuda.is_available()
     device = torch.device('mps')
@@ -170,7 +180,8 @@ def main(args):
     solver = Solver(args, test_dataloader,device,image_size)
 
     splits = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
-
+    splits = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8]
+    splits = [0.1]
     current_indices = list(initial_indices)
 
     accuracies = []
@@ -180,6 +191,7 @@ def main(args):
             # need to retrain all the models on the new images
             # re initialize and retrain the models
             task_model = vgg.vgg16_bn(num_classes=args.num_classes)
+            # task_model = model.Classifier(num_classes=10,z_dim=args.latent_dim)
             vae = model.VAE(args.latent_dim,3,image_size)
             discriminator = model.Discriminator(args.latent_dim)
 
@@ -202,7 +214,9 @@ def main(args):
                                                     task_model, 
                                                     vae, 
                                                     discriminator,
-                                                    unlabeled_dataloader)
+                                                    unlabeled_dataloader,
+                                                    disc_val_labeled_dataloader,
+                                                    disc_val_unlabeled_dataloader)
 
                 # print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=100))
                 # prof.export_chrome_trace("trace.json")

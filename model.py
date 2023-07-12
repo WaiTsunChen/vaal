@@ -225,3 +225,24 @@ def normal_init(m, mean, std):
         m.weight.data.fill_(1)
         if m.bias.data is not None:
             m.bias.data.zero_()
+
+class Classifier(nn.Module):
+    def __init__(self, num_classes:int, z_dim:int=32) -> None:
+        super().__init__()
+
+        self.classifier = nn.Sequential(
+            nn.Linear(z_dim, 4096),
+            nn.ReLU(True),
+            nn.Dropout(),
+            nn.Linear(4096, 4096),
+            nn.ReLU(True),
+            nn.Dropout(),
+            nn.Linear(4096, num_classes),
+        )
+
+    def forward(self, x):
+        print(x.shape)
+        x = torch.flatten(x, 1)
+        print(x.shape)
+        x = self.classifier(x)
+        return x
