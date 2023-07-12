@@ -89,6 +89,9 @@ class Solver:
                 labeled_imgs = labeled_imgs.to(self.device)
                 unlabeled_imgs = unlabeled_imgs.to(self.device)
                 labels = labels.to(self.device)
+                disc_val_labeled_imgs = disc_val_labeled_imgs.to(self.device)
+                disc_val_unlabeled_imgs = disc_val_unlabeled_imgs.to(self.device)
+                
 
             # task_model step
             preds = task_model(labeled_imgs)
