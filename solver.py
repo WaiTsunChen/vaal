@@ -151,8 +151,8 @@ class Solver:
                 if self.args.cuda:
                     # lab_real_preds = lab_real_preds.cuda()
                     # unlab_real_preds = unlab_real_preds.cuda()
-                    disc_val_labeled_preds = disc_val_lab_real_preds.to(self.device)
-                    disc_val_unlabeled_preds = disc_val_unlab_real_preds.to(self.device)
+                    disc_val_lab_real_preds = disc_val_lab_real_preds.to(self.device)
+                    disc_val_unlab_real_preds = disc_val_unlab_real_preds.to(self.device)
 
                                
                 disc_val_adv_loss = self.bce_loss(disc_val_labeled_preds, disc_val_lab_real_preds.unsqueeze(1)) + \
