@@ -52,7 +52,7 @@ class Solver:
 
         optim_vae = optim.Adam(vae.parameters(), lr=5e-4)
         optim_task_model = optim.SGD(task_model.parameters(), lr=0.01, weight_decay=5e-4, momentum=0.9)
-        optim_discriminator = optim.Adam(discriminator.parameters(), lr=5e-4)
+        optim_discriminator = optim.Adam(discriminator.parameters(), lr=5e-4 )
 
         wandb.watch([vae,discriminator,task_model],log='all',log_freq=9000)
 

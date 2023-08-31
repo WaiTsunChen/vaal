@@ -115,22 +115,22 @@ class AdversarySampler:
         # d.to_pickle(f'df_sample_tsne_{split}.df')
         
         # take highest entropy as sampling
-        _, querry_indices = torch.topk(task_predictions, int(self.budget))
-        querry_pool_indices = np.asarray(all_indices)[querry_indices]
-        print(list(querry_pool_indices[:200]))
+#        _, querry_indices = torch.topk(task_predictions, int(self.budget))
+#        querry_pool_indices = np.asarray(all_indices)[querry_indices]
+#        print(list(querry_pool_indices[:200]))
 
         # combining Disc and Entropy for sampling
-        num_samples = len(d)//2
-        s1 = d.sort_values(by='task_model_preds',ascending=False).iloc[:num_samples]
-        querry_pool_indices = s1.sort_values(by='disc_preds',ascending=False)[:self.budget]['index'].tolist()
-        querry_pool_indices = np.array(querry_pool_indices)
+#        num_samples = len(d)//2
+#        s1 = d.sort_values(by='disc_preds',ascending=False).iloc[:num_samples]
+#        querry_pool_indices = s1.sort_values(by='task_model_preds',ascending=False)[:self.budget]['index'].tolist()
+#        querry_pool_indices = np.array(querry_pool_indices)
 
         # combined metric favouring task-model
-        querry_pool_indices = d.sort_values(by='combined',ascending=False)[:self.budget]['index'].tolist()
-        querry_pool_indices = np.array(querry_pool_indices)
+#        querry_pool_indices = d.sort_values(by='combined',ascending=False)[:self.budget]['index'].tolist()
+#        querry_pool_indices = np.array(querry_pool_indices)
 
         # plotting sub sample
-        sub_idx  = random.sample(d.index.tolist(),len(d)//2)
+        sub_idx  = random.sample(d.index.tolist(),len(d)//8)
 
         # plot coordinates with sampled as hue
         fig, ax = plt.subplots(figsize=(8,8))
@@ -204,7 +204,7 @@ class AdversarySampler:
         # plot coordinates with un/labeled, sampled as hue
         combined_d = pd.concat([d,labeled_d], ignore_index=True)
         combined_d.reset_index(inplace=True, drop=True)
-        sub_idx = random.sample(combined_d.index.tolist(),len(combined_d)//2)
+        sub_idx = random.sample(combined_d.index.tolist(),len(combined_d)//8)
         fig, ax = plt.subplots(figsize=(8,8))
         sns.scatterplot(data=combined_d.iloc[sub_idx],x='feature_1',y='feature_2',hue='category',ax=ax, palette='tab10')
         wandb.log({"tsne_plot": wandb.Image(fig,caption='hue distirbution')})
@@ -229,7 +229,7 @@ class AdversarySampler:
                 tile = ImageOps.expand(tile,border=2,fill='yellow')
             elif combined_d.iloc[i].category == 'labeled':
                 tile = ImageOps.expand(tile,border=2,fill='red')
-            else: tile = ImageOps.expand(tile,border=2,fill='blue') 
+#            else: tile = ImageOps.expand(tile,border=2,fill='blue') 
             full_image.paste(tile, (int((width-max_dim) * tx[i]),
                             int((height-max_dim) * ty[i])))
         wandb.log({"tsne_plot": wandb.Image(full_image,caption='distribution images')})

@@ -102,7 +102,7 @@ def validate(args,task_model, loader):
 def test(args,test_dataloader, task_model):
     task_model.eval()
     total, correct = 0, 0
-    for imgs, labels, _ in test_dataloader:
+    for imgs, labels in test_dataloader:
         if args.cuda:
             imgs = imgs.cuda()
 

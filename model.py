@@ -181,15 +181,15 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
         self.z_dim = z_dim
         self.net = nn.Sequential(
-            nn.Linear(z_dim, 1024),
+            nn.Linear(z_dim, 512),
             nn.ReLU(True),
-            nn.Linear(1024, 1024),
-            nn.ReLU(True),
-            nn.Linear(1024, 1024),
-            nn.ReLU(True),
-            nn.Linear(1024, 1024),
-            nn.ReLU(True),
-            nn.Linear(1024, 512),
+#            nn.Linear(1024, 1024),
+#            nn.ReLU(True),
+#            nn.Linear(1024, 1024),
+#            nn.ReLU(True),
+#            nn.Linear(1024, 1024),
+#            nn.ReLU(True),
+            nn.Linear(512, 512),
             nn.ReLU(True),
             nn.Linear(512, 1),
             nn.Sigmoid()

@@ -144,9 +144,9 @@ def main(args):
     # val_indices = random.sample(all_indices, args.num_val)
 
     all_indices = np.setdiff1d(list(all_indices), val_indices)
-    disc_val_labeled_indices = fixed_initial_sampler.sample(list(all_indices), 200) # create dataloader for validation
+    disc_val_labeled_indices = fixed_initial_sampler.sample(list(all_indices), 2000) # create dataloader for validation
     all_indices = np.setdiff1d(list(all_indices), disc_val_labeled_indices)
-    disc_val_unlabeled_indices = fixed_initial_sampler.sample(list(all_indices),200)
+    disc_val_unlabeled_indices = fixed_initial_sampler.sample(list(all_indices),2000)
     all_indices = np.setdiff1d(list(all_indices), disc_val_unlabeled_indices)
     
     initial_indices = fixed_initial_sampler.sample(list(all_indices), args.initial_budget)
@@ -170,7 +170,7 @@ def main(args):
             worker_init_fn=set_worker_sharing_strategy)
             
     args.cuda = args.cuda and torch.cuda.is_available()
-    device = torch.device('mps')
+    device = torch.device('cuda')
     # elif torch.backends.mps.is_available():
     #     device = torch.device('mps')
     # else:
@@ -180,8 +180,8 @@ def main(args):
     solver = Solver(args, test_dataloader,device,image_size)
 
     splits = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
-    splits = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8]
-    splits = [0.1]
+#    splits = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8]
+#    splits = [0.1]
     current_indices = list(initial_indices)
 
     accuracies = []
